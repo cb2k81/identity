@@ -1,0 +1,18 @@
+<!-- Beispiel für ein Schema-Update zur Umbenennung der Tabelle "region" in "territory" -->
+<changeSet id="003-rename-region-to-territory" author="deinName">
+    <renameTable
+            oldTableName="region"
+            newTableName="territory"/>
+    <renameColumn tableName="territory"
+                  oldColumnName="region_id"
+                  newColumnName="territory_id" />
+    <dropForeignKeyConstraint
+            baseTableName="some_table"
+            constraintName="fk_region_xyz"/>
+    <addForeignKeyConstraint
+            baseTableName="some_table"
+            baseColumnNames="territory_id"
+            referencedTableName="territory"
+            referencedColumnNames="id"
+            constraintName="fk_territory_xyz"/>
+</changeSet>
