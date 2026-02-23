@@ -1,7 +1,6 @@
 package de.cocondo.app.system.security;
 
 import de.cocondo.app.system.security.jwt.JwtAuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -12,7 +11,12 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.access.AccessDeniedHandler;
+import org.springframework.security.web.AuthenticationEntryPoint;
 
+/**
+ * HTTP Security configuration (NON-DEV).
+ */
 @Configuration
 @EnableWebSecurity
 @Profile("!dev")
@@ -23,7 +27,9 @@ public class HttpSecurityJwtConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(
             HttpSecurity http,
-            JwtAuthenticationFilter jwtAuthenticationFilter
+            JwtAuthenticationFilter jwtAuthenticationFilter,
+            AuthenticationEntryPoint restAuthenticationEntryPoint,
+            AccessDeniedHandler restAccessDeniedHandler
     ) throws Exception {
 
         logger.info("Initializing NON-DEV HttpSecurity configuration (JWT protected)");
@@ -31,37 +37,36 @@ public class HttpSecurityJwtConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
-                .exceptionHandling(ex -> ex
-                        .authenticationEntryPoint((request, response, authException) -> {
-                            response.sendError(HttpServletResponse.SC_UNAUTHORIZED, "Unauthorized");
-                        })
-                        .accessDeniedHandler((request, response, accessDeniedException) -> {
-                            response.sendError(HttpServletResponse.SC_FORBIDDEN, "Forbidden");
-                        })
-                )
-
                 .authorizeHttpRequests(auth -> auth
                         // public endpoints
-                        .requestMatchers("/public/**").permitAll()
-                        .requestMatchers("/api/auth/login").permitAll()
-
                         .requestMatchers(
+                                "/api/auth/login",
+
+                                // springdoc defaults (see EndpointPrinter)
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html",
+
+                                // static / landing (system DefaultController + resources)
                                 "/",
                                 "/index.html",
                                 "/favicon.ico",
-                                "/static/**"
+                                "/static/**",
+
+                                // PUBLIC API (anonymous allowed)
+                                "/public/**"
                         ).permitAll()
 
-                        // authenticated API
+                        // everything else under /api is protected
                         .requestMatchers("/api/**").authenticated()
 
+                        // remaining endpoints
                         .anyRequest().permitAll()
                 )
-
+                .exceptionHandling(eh -> eh
+                        .authenticationEntryPoint(restAuthenticationEntryPoint)
+                        .accessDeniedHandler(restAccessDeniedHandler)
+                )
                 .httpBasic(httpBasic -> httpBasic.disable())
                 .formLogin(form -> form.disable())
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

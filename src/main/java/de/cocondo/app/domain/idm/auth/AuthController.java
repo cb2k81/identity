@@ -4,6 +4,7 @@ import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -34,8 +35,14 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
 
-        UserAccount user = userAccountDomainService
-                .authenticate(request.getUsername(), request.getPassword());
+        UserAccount user;
+        try {
+            user = userAccountDomainService
+                    .authenticate(request.getUsername(), request.getPassword());
+        } catch (IllegalArgumentException ex) {
+            // Map domain-level invalid credentials to HTTP 401
+            throw new BadCredentialsException(ex.getMessage(), ex);
+        }
 
         String token = idmTokenService.issueToken(user);
 

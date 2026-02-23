@@ -32,7 +32,7 @@ OUT_FILE="$TMP_DIR/idm_code-export_${TIMESTAMP}.txt"
 # SOURCES: Liste von Quellen, die verarbeitet werden sollen
 SOURCES=(
   "pom.xml"
-  ".emv"
+  ".env"
   ".gitignore"
   "src/main/java/**"
   "README.md"

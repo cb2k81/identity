@@ -35,13 +35,14 @@ public class DefaultWebConfig implements WebMvcConfigurer {
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
         registry.addInterceptor(new DefaultFallbackInterceptor())
-                .excludePathPatterns( "/")
-                .excludePathPatterns( "/favicon.ico")
+                .excludePathPatterns("/")
+                .excludePathPatterns("/favicon.ico")
                 .excludePathPatterns("/index.html")
                 .excludePathPatterns(apiDocsPath + "/**")
                 .excludePathPatterns(swaggerUiPath + "/**")
                 .excludePathPatterns("/auth/**")
                 .excludePathPatterns("/api/**")
+                .excludePathPatterns("/public/**")
                 .excludePathPatterns("/static/**");
 
         logger.info("Registering DefaultFallbackInterceptor bean");
@@ -69,5 +70,4 @@ public class DefaultWebConfig implements WebMvcConfigurer {
 
         logger.info("Static resources mapped to classpath:/static/");
     }
-
 }
