@@ -2,7 +2,14 @@ package de.cocondo.app.system.security;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignment;
+import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntityService;
+import de.cocondo.app.domain.idm.scope.ApplicationScope;
+import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
+import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountDomainService;
+import de.cocondo.app.domain.idm.user.UserAccountEntityService;
+import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -32,6 +39,8 @@ public class HttpSecurityPathIntegrationTest {
 
     private static final String TEST_USERNAME = "admin";
     private static final String TEST_PASSWORD = "secret";
+    private static final String APPLICATION_KEY = "IDM";
+    private static final String STAGE_KEY = "TEST";
 
     @Autowired
     private MockMvc mockMvc;
@@ -42,12 +51,54 @@ public class HttpSecurityPathIntegrationTest {
     @Autowired
     private UserAccountDomainService userAccountDomainService;
 
+    @Autowired
+    private UserAccountEntityService userAccountEntityService;
+
+    @Autowired
+    private ApplicationScopeEntityService applicationScopeEntityService;
+
+    @Autowired
+    private UserApplicationScopeAssignmentEntityService userScopeAssignmentService;
+
+    private ApplicationScope scope;
+    private UserAccount user;
+
     @BeforeEach
     void setup() {
+
+        // 1) Scope sicherstellen
+        scope = applicationScopeEntityService
+                .loadByApplicationKeyAndStageKey(APPLICATION_KEY, STAGE_KEY)
+                .orElseGet(() -> {
+                    ApplicationScope s = new ApplicationScope();
+                    s.setApplicationKey(APPLICATION_KEY);
+                    s.setStageKey(STAGE_KEY);
+                    s.setDescription("Test Scope");
+                    return applicationScopeEntityService.save(s);
+                });
+
+        // 2) User sicherstellen
         try {
-            userAccountDomainService.createUser(TEST_USERNAME, TEST_PASSWORD);
+            CreateUserRequestDTO dto = new CreateUserRequestDTO();
+            dto.setUsername(TEST_USERNAME);
+            dto.setPassword(TEST_PASSWORD);
+            userAccountDomainService.createUser(dto);
         } catch (IllegalArgumentException ignored) {
-            // user already exists (minimal test isolation)
+            // user already exists
+        }
+
+        user = userAccountEntityService
+                .loadByUsername(TEST_USERNAME)
+                .orElseThrow();
+
+        // 3) Scope-Zuordnung sicherstellen
+        if (!userScopeAssignmentService
+                .existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId())) {
+
+            UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
+            assignment.setUserAccount(user);
+            assignment.setApplicationScope(scope);
+            userScopeAssignmentService.save(assignment);
         }
     }
 
@@ -85,12 +136,15 @@ public class HttpSecurityPathIntegrationTest {
     }
 
     private String loginAndGetToken() throws Exception {
+
         String loginRequest = """
                 {
-                    "username": "admin",
-                    "password": "secret"
+                    "username": "%s",
+                    "password": "%s",
+                    "applicationKey": "%s",
+                    "stageKey": "%s"
                 }
-                """;
+                """.formatted(TEST_USERNAME, TEST_PASSWORD, APPLICATION_KEY, STAGE_KEY);
 
         String loginResponseBody = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)

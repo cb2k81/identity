@@ -1,6 +1,6 @@
 package de.cocondo.app.domain.idm.auth;
 
-import de.cocondo.app.domain.idm.user.UserAccount;
+import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import de.cocondo.app.system.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -19,9 +19,9 @@ import java.util.Map;
  * - Define token lifetime (TTL)
  *
  * Architectural constraints:
- * - May reference domain classes (e.g., UserAccount)
  * - MUST NOT implement signing logic (delegates to JwtService)
  * - MUST NOT implement HTTP or controller logic
+ * - MUST NOT require domain entities as input
  */
 @Service
 @RequiredArgsConstructor
@@ -41,17 +41,7 @@ public class IdmTokenService {
     public record IssuedToken(String token, long expiresAt) {
     }
 
-    /**
-     * Issues a signed JWT for the given authenticated user.
-     *
-     * Sprint 3 MVP:
-     * - No roles or permissions in token
-     * - Minimal identity claims only
-     *
-     * @param user authenticated UserAccount
-     * @return IssuedToken containing JWT and expiration timestamp
-     */
-    public IssuedToken issueToken(UserAccount user) {
+    public IssuedToken issueToken(AuthenticatedUserDTO user) {
 
         Map<String, Object> claims = new HashMap<>();
 

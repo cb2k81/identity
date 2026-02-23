@@ -1,8 +1,9 @@
 package de.cocondo.app.domain.idm.auth;
 
 import de.cocondo.app.domain.idm.user.InvalidCredentialsException;
-import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountDomainService;
+import de.cocondo.app.domain.idm.user.dto.AuthenticateUserRequestDTO;
+import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -22,6 +23,7 @@ import org.springframework.web.bind.annotation.*;
  * - No password hashing here
  * - No JWT signing logic here
  * - No business rules here
+ * - Controller is a thin API layer
  */
 @RestController
 @RequestMapping("/api/auth")
@@ -34,19 +36,21 @@ public class AuthController {
     @PostMapping("/login")
     public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
 
-        UserAccount user;
+        AuthenticateUserRequestDTO authRequest = new AuthenticateUserRequestDTO();
+        authRequest.setUsername(request.getUsername());
+        authRequest.setPassword(request.getPassword());
+        authRequest.setApplicationKey(request.getApplicationKey());
+        authRequest.setStageKey(request.getStageKey());
+
+        AuthenticatedUserDTO user;
 
         try {
-            user = userAccountDomainService.authenticate(
-                    request.getUsername(),
-                    request.getPassword()
-            );
+            user = userAccountDomainService.authenticate(authRequest);
         } catch (InvalidCredentialsException ex) {
             throw new BadCredentialsException(ex.getMessage(), ex);
         }
 
-        IdmTokenService.IssuedToken issued =
-                idmTokenService.issueToken(user);
+        IdmTokenService.IssuedToken issued = idmTokenService.issueToken(user);
 
         LoginResponseDTO response = new LoginResponseDTO();
         response.setToken(issued.token());

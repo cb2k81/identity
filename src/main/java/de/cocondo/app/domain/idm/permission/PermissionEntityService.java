@@ -35,4 +35,9 @@ public class PermissionEntityService {
     public Permission save(Permission permission) {
         return permissionRepository.save(permission);
     }
+
+    @Transactional
+    public void delete(Permission permission) {
+        permissionRepository.delete(permission);
+    }
 }
