@@ -58,9 +58,36 @@ Damit ist das Modell vollständig generisch.
 
 ---
 
-### 3.2 Domain Entities
+### 3.2 Domain Entities (finales Modell mit Scope-Unterstützung)
 
-Folgende persistente Entities werden eingeführt:
+Mit Einführung von `ApplicationScope` wird das bisherige `applicationKey`-Feld durch eine explizite Scope-Relation ersetzt.
+
+---
+
+#### ApplicationScope
+
+Repräsentiert eine konkrete Anwendung in einer konkreten Stage.
+
+Attribute:
+
+* id
+* applicationKey
+* stageKey
+* description
+
+Unique Constraint:
+
+* (applicationKey, stageKey)
+
+Beispiele:
+
+* (IDM, DEV)
+* (IDM, PROD)
+* (PERSONNEL, TEST)
+
+Alle Rollen und Berechtigungen sind einem ApplicationScope eindeutig zugeordnet.
+
+---
 
 #### PermissionGroup
 
@@ -69,13 +96,13 @@ Strukturiert logisch zusammengehörige Berechtigungen.
 Attribute:
 
 * id
-* applicationKey
+* applicationScope (ManyToOne, LAZY)
 * name
 * description
 
 Unique Constraint:
 
-* (applicationKey, name)
+* (application_scope_id, name)
 
 ---
 
@@ -86,14 +113,15 @@ Repräsentiert eine konkrete fachliche Berechtigung.
 Attribute:
 
 * id
-* applicationKey
+* applicationScope (ManyToOne, LAZY)
 * name
 * description
 * permissionGroup (ManyToOne, LAZY)
+* systemProtected (boolean)
 
 Unique Constraint:
 
-* (applicationKey, name)
+* (application_scope_id, name)
 
 ---
 
@@ -104,13 +132,14 @@ Aggregiert Berechtigungen.
 Attribute:
 
 * id
-* applicationKey
+* applicationScope (ManyToOne, LAZY)
 * name
 * description
+* systemProtected (boolean)
 
 Unique Constraint:
 
-* (applicationKey, name)
+* (application_scope_id, name)
 
 ---
 
@@ -124,6 +153,10 @@ Attribute:
 * role (ManyToOne, LAZY)
 * permission (ManyToOne, LAZY)
 
+Unique Constraint:
+
+* (role_id, permission_id)
+
 ---
 
 #### UserRoleAssignment
@@ -136,9 +169,41 @@ Attribute:
 * userAccount (ManyToOne, LAZY)
 * role (ManyToOne, LAZY)
 
+Unique Constraint:
+
+* (user_account_id, role_id)
+
 ---
 
-### 3.3 Fetch-Strategie
+### 3.3 Modellübersicht (Relationen)
+
+Strukturelle Beziehung:
+
+ApplicationScope
+↓
+PermissionGroup
+↓
+Permission
+
+ApplicationScope
+↓
+Role
+↓
+RolePermissionAssignment
+↓
+Permission
+
+UserAccount
+↓
+UserRoleAssignment
+↓
+Role
+
+Alle Relationen sind unidirektional und LAZY.
+
+---
+
+### 3.4 Fetch-Strat
 
 Alle Relationen werden LAZY geladen.
 
@@ -149,6 +214,91 @@ Begründung:
 * Die Rechteauflösung erfolgt explizit im Resolver.
 
 Es werden keine bidirektionalen Relationen modelliert.
+
+---
+
+### 3.3 Scope- und Stage-Modell
+
+Neben dem `applicationKey` benötigt das Modell eine weitere Dimension, um unterschiedliche Betriebsumgebungen (Stages) sowie ggf. mehrere Scope-Definitionen pro Anwendung sauber abzubilden.
+
+#### Ziel
+
+* Jede Anwendung besitzt einen eigenen Rechte-Scope.
+* Innerhalb einer Anwendung können mehrere Stages existieren (z. B. DEV, TEST, PROD).
+* Rollen- und Berechtigungszuordnungen können je Stage variieren.
+* IDM-eigene Rechte werden exakt gleich behandelt, jedoch durch Domain-Regeln geschützt.
+
+---
+
+#### Einführung: ApplicationScope
+
+Neue Entity:
+
+* id
+* applicationKey
+* stageKey (z. B. DEV, TEST, PROD oder frei definierbar)
+* description
+
+Unique Constraint:
+
+* (applicationKey, stageKey)
+
+Bedeutung:
+
+Ein `ApplicationScope` repräsentiert eine konkrete Anwendung in einer konkreten Stage.
+
+Beispiele:
+
+* (IDM, DEV)
+* (IDM, PROD)
+* (PERSONNEL, TEST)
+
+---
+
+#### Anpassung bestehender Entities
+
+`Role`, `PermissionGroup` und `Permission` werden einem `ApplicationScope` zugeordnet.
+
+Dadurch gilt:
+
+* Rechte sind nicht nur application-spezifisch, sondern auch stage-spezifisch.
+* Stage-Unterschiede werden vollständig isoliert.
+
+`UserRoleAssignment` bleibt stage-spezifisch, da Rollen stagegebunden sind.
+
+---
+
+#### Warum kein Sondermodell für IDM?
+
+Das IDM selbst nutzt ebenfalls `ApplicationScope` mit:
+
+* applicationKey = "IDM"
+* stageKey = z. B. "DEV" oder "PROD"
+
+Es existiert keinerlei Sonderbehandlung im Datenmodell.
+
+Der Schutz der IDM-eigenen Basisrollen und -rechte erfolgt ausschließlich im Domain-Service (z. B. Verbot des Löschens bestimmter systemrelevanter Rollen).
+
+---
+
+#### Domain-Regel: Systemgeschützte Rollen und Rechte
+
+Bestimmte Rollen oder Berechtigungen können als "systemgeschützt" markiert werden.
+
+Empfohlene Ergänzung:
+
+Boolean-Feld:
+
+* `systemProtected`
+
+für `Role` und ggf. `Permission`.
+
+Regel im DomainService:
+
+* Systemgeschützte Objekte dürfen nicht gelöscht werden.
+* Änderungen können eingeschränkt werden.
+
+Diese Logik gehört ausschließlich in den Domain-Service und nicht ins Entity-Modell.
 
 ---
 

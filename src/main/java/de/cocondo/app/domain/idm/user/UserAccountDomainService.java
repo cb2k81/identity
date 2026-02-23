@@ -7,6 +7,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Optional;
 
+// TODO-ARCH: Domain-Services dürfen nach außen nur mit DTOs arbeiten, niemals Entities weitergeben oder annehmen.
+
 /**
  * Domain service for the UserAccount aggregate.
  *

@@ -1,0 +1,52 @@
+package de.cocondo.app.domain.idm.permission;
+
+import de.cocondo.app.domain.idm.scope.ApplicationScope;
+import de.cocondo.app.system.entity.DomainEntity;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+/**
+ * Represents a concrete permission.
+ *
+ * Notes:
+ * - Bound to an ApplicationScope (application + stage).
+ * - Grouped via PermissionGroup.
+ * - LAZY relations to avoid loading large graphs unintentionally.
+ */
+@Entity
+@Table(
+        name = "idm_permission",
+        uniqueConstraints = {
+                @UniqueConstraint(columnNames = {"application_scope_id", "name"})
+        }
+)
+@Getter
+@Setter
+@NoArgsConstructor
+public class Permission extends DomainEntity {
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "application_scope_id", nullable = false)
+    private ApplicationScope applicationScope;
+
+    @Column(name = "name", nullable = false, length = 128)
+    private String name;
+
+    @Column(name = "description", length = 512)
+    private String description;
+
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "permission_group_id", nullable = false)
+    private PermissionGroup permissionGroup;
+
+    @Column(name = "system_protected", nullable = false)
+    private boolean systemProtected;
+}
