@@ -44,3 +44,9 @@ logging:
     root: INFO
     org.springframework: INFO
     org.hibernate.SQL: DEBUG
+
+idm:
+  security:
+    jwt:
+      secret: q3X9mJf8R2vKpL6YtWzD1sHcE4nB7uV5aF0xT8rYpQ6wZkN3cJ9dL2mS7hGvU4ePjR1tX6yBqC8nM5kL0zWfD3uH
+      ttl-ms: 3600000

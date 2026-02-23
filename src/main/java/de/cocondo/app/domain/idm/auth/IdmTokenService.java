@@ -3,6 +3,7 @@ package de.cocondo.app.domain.idm.auth;
 import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.system.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
@@ -28,39 +29,44 @@ public class IdmTokenService {
 
     private final JwtService jwtService;
 
+    @Value("${idm.security.jwt.ttl-ms}")
+    private long ttlMillis;
+
     /**
-     * Issues a signed JWT for the given authenticated user.
+     * Value object representing an issued token.
      *
-     * @param user authenticated UserAccount
-     * @return signed JWT string
+     * @param token     signed JWT
+     * @param expiresAt absolute expiration timestamp (epoch millis)
      */
-    public String issueToken(UserAccount user) {
-
-        Map<String, Object> claims = new HashMap<>();
-
-        // TODO-ARCH: Extend claims with roles/permissions when domain model evolves
-        // Minimal MVP claim set:
-
-        claims.put("sub", user.getId());          // technical identity
-        claims.put("username", user.getUsername());
-
-        Date expiration = calculateExpiration();
-
-        return jwtService.generateToken(claims, expiration);
+    public record IssuedToken(String token, long expiresAt) {
     }
 
     /**
-     * Defines token expiration policy.
+     * Issues a signed JWT for the given authenticated user.
      *
-     * TODO-ARCH: Externalize TTL via configuration.
+     * Sprint 3 MVP:
+     * - No roles or permissions in token
+     * - Minimal identity claims only
+     *
+     * @param user authenticated UserAccount
+     * @return IssuedToken containing JWT and expiration timestamp
      */
+    public IssuedToken issueToken(UserAccount user) {
+
+        Map<String, Object> claims = new HashMap<>();
+
+        claims.put("sub", user.getId());
+        claims.put("username", user.getUsername());
+
+        Date expiration = calculateExpiration();
+        String token = jwtService.generateToken(claims, expiration);
+
+        return new IssuedToken(token, expiration.getTime());
+    }
+
     private Date calculateExpiration() {
 
         long now = System.currentTimeMillis();
-
-        // 1 hour validity (MVP default)
-        long ttlMillis = 60 * 60 * 1000;
-
         return new Date(now + ttlMillis);
     }
 }

@@ -2,16 +2,13 @@ package de.cocondo.app.system.security.jwt;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 import java.util.Map;
-
-// TODO-ARCH: Secret must be externalized via configuration (application.yml)
-// TODO-ARCH: This service must remain domain-agnostic (no domain imports allowed)
-// TODO-ARCH: Claim construction must be implemented in domain layer
 
 /**
  * Technical JWT service.
@@ -37,24 +34,34 @@ public class JwtService {
     private final SecretKey secretKey;
 
     /**
-     * Minimal MVP constructor.
+     * Constructor using externalized secret configuration.
      *
-     * NOTE:aaaa
-     * In production this key must come from secure configuration.
-     * For MVP it is hardcoded but should be externalized later.
+     * Property:
+     * idm.security.jwt.secret
      */
-    public JwtService() {
-        // IMPORTANT:
-        // This is a placeholder key for MVP.
-        // Replace with externalized configuration before production use.
-        String secret = "change-this-secret-key-change-this-secret-key";
-        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    public JwtService(@Value("${idm.security.jwt.secret}") String secret) {
+
+        if (secret == null || secret.isBlank()) {
+            throw new IllegalStateException(
+                    "JWT secret is not configured (idm.security.jwt.secret)"
+            );
+        }
+
+        if (secret.getBytes(StandardCharsets.UTF_8).length < 32) {
+            throw new IllegalStateException(
+                    "JWT secret must be at least 32 bytes for HS256"
+            );
+        }
+
+        this.secretKey = Keys.hmacShaKeyFor(
+                secret.getBytes(StandardCharsets.UTF_8)
+        );
     }
 
     /**
      * Signs a JWT using provided claims and expiration timestamp.
      *
-     * @param claims claims to include in token
+     * @param claims     claims to include in token
      * @param expiration expiration timestamp
      * @return signed JWT string
      */

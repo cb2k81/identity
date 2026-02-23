@@ -1,5 +1,6 @@
 package de.cocondo.app.domain.idm.auth;
 
+import de.cocondo.app.domain.idm.user.InvalidCredentialsException;
 import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import lombok.RequiredArgsConstructor;
@@ -7,8 +8,6 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.Date;
 
 /**
  * Authentication controller for IDM.
@@ -36,34 +35,26 @@ public class AuthController {
     public LoginResponseDTO login(@RequestBody LoginRequestDTO request) {
 
         UserAccount user;
+
         try {
-            user = userAccountDomainService
-                    .authenticate(request.getUsername(), request.getPassword());
-        } catch (IllegalArgumentException ex) {
-            // Map domain-level invalid credentials to HTTP 401
+            user = userAccountDomainService.authenticate(
+                    request.getUsername(),
+                    request.getPassword()
+            );
+        } catch (InvalidCredentialsException ex) {
             throw new BadCredentialsException(ex.getMessage(), ex);
         }
 
-        String token = idmTokenService.issueToken(user);
+        IdmTokenService.IssuedToken issued =
+                idmTokenService.issueToken(user);
 
         LoginResponseDTO response = new LoginResponseDTO();
-        response.setToken(token);
-
-        // TODO-ARCH: expiration should be provided by IdmTokenService
-        long expiresAt = new Date(System.currentTimeMillis() + 60 * 60 * 1000).getTime();
-        response.setExpiresAt(expiresAt);
+        response.setToken(issued.token());
+        response.setExpiresAt(issued.expiresAt());
 
         return response;
     }
 
-    /**
-     * Returns information about the currently authenticated user.
-     *
-     * This endpoint is protected by JWT authentication.
-     *
-     * @param authentication injected Spring Security authentication
-     * @return MeResponseDTO containing principal information
-     */
     @GetMapping("/me")
     public MeResponseDTO me(Authentication authentication) {
 
