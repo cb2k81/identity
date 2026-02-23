@@ -1,69 +1,44 @@
 package de.cocondo.app.system.swagger;
 
-import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.headers.Header;
+import io.swagger.v3.oas.models.Components;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.security.SecurityRequirement;
 import io.swagger.v3.oas.models.security.SecurityScheme;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
+/**
+ * OpenAPI configuration for IDM.
+ *
+ * Documents JWT Bearer authentication.
+ *
+ * NOTE:
+ * - This configuration only documents security.
+ * - Actual enforcement is done by Spring Security.
+ */
 @Configuration
 public class SwaggerConfig {
 
-    @Value("${api.security.token.header-name:X-API-Token}")
-    private String apiTokenHeaderName;
-
-    @Value("${app.label:Application}")
-    private String appLabel;
+    private static final String SECURITY_SCHEME_NAME = "BearerAuth";
 
     @Bean
-    public OpenAPI customOpenAPI() {
-        Components components = createComponents();
-        sortAndAddHeaderSchemas(components);
-        sortAndAddSecuritySchemas(components);
+    public OpenAPI openAPI() {
 
-        OpenAPI openAPI = new OpenAPI()
-                .components(components)
-                .info(new Info().title(appLabel + " - API Documentation").version("1.0.0"));
+        SecurityScheme bearerScheme = new SecurityScheme()
+                .type(SecurityScheme.Type.HTTP)
+                .scheme("bearer")
+                .bearerFormat("JWT")
+                .description("JWT Bearer authentication");
 
-        openAPI.addSecurityItem(new SecurityRequirement().addList("API-Token"));
-
-        return openAPI;
-    }
-
-    private Components createComponents() {
-        Header header = new Header()
-                .description("API-Token")
-                .required(true);
-
-        SecurityScheme securityScheme = new SecurityScheme()
-                .name(apiTokenHeaderName)
-                .type(SecurityScheme.Type.APIKEY)
-                .in(SecurityScheme.In.HEADER);
-
-        Components components = new Components();
-        components.addHeaders("API-Token", header);
-        components.addSecuritySchemes("API-Token", securityScheme);
-
-        return components;
-    }
-
-    private void sortAndAddHeaderSchemas(Components components) {
-        List<Map.Entry<String, Header>> headerSchemas = new ArrayList<>(components.getHeaders().entrySet());
-        headerSchemas.sort(Map.Entry.comparingByKey());
-        headerSchemas.forEach(entry -> components.addHeaders(entry.getKey(), entry.getValue()));
-    }
-
-    private void sortAndAddSecuritySchemas(Components components) {
-        List<Map.Entry<String, SecurityScheme>> securitySchemas = new ArrayList<>(components.getSecuritySchemes().entrySet());
-        securitySchemas.sort(Map.Entry.comparingByKey());
-        securitySchemas.forEach(entry -> components.addSecuritySchemes(entry.getKey(), entry.getValue()));
+        return new OpenAPI()
+                .info(new Info()
+                        .title("IDM Service API")
+                        .version("0.1.0")
+                        .description("Identity Management Service – JWT Authentication"))
+                .components(new Components()
+                        .addSecuritySchemes(SECURITY_SCHEME_NAME, bearerScheme))
+                .addSecurityItem(new SecurityRequirement()
+                        .addList(SECURITY_SCHEME_NAME));
     }
 }

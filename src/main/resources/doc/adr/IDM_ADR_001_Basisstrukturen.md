@@ -1,187 +1,225 @@
-# ADR-001: Basisarchitektur und Schichtentrennung
+# ADR-001 – Basisstrukturen und Abhängigkeitsregeln (Version 3)
 
 ## Status
 
-**Accepted**
+Accepted
 
 ---
 
 ## Kontext
 
-Für den IDM Service wird eine eigenständige, langlebige Anwendung mit sensiblen Daten aufgebaut. Die Architektur muss daher:
+Der personnel Service folgt einer klar strukturierten, schichtenbasierten Architektur mit fachlicher Trennung nach Domänen sowie technischen Basisdiensten.
 
-* fachliche und technische Aspekte klar trennen
-* unbeabsichtigte Kopplungen vermeiden
-* langfristig wartbar und erweiterbar bleiben
-* spätere Architekturabweichungen erkennbar machen
+In der ersten Fassung dieses ADRs war definiert, dass das `domain`-Package keine Abhängigkeiten zum `system`-Package besitzen darf. Diese Regel ist nicht mit der tatsächlichen Architektur vereinbar, da zentrale technische Basiskomponenten (z. B. `DomainEntity`, ID-Generierung, Auditierung, Metadaten) im `system`-Package verortet sind und von fachlichen Entitäten verwendet werden.
 
-Im Zuge des Aufbaus der Basisstrukturen (Sprint 1) wurden mehrere grundlegende Architekturentscheidungen getroffen, die verbindlich dokumentiert werden müssen, um Konsistenz und Nachvollziehbarkeit sicherzustellen.
+Zur Sicherstellung einer konsistenten und stabilen Architektur wird die Abhängigkeitsregel präzisiert.
+
+Zusätzlich wurde im Projektverlauf sichtbar, dass für technische Basisklassen und persistente Entities verbindliche Regeln benötigt werden, um:
+
+* Proxy-sichere Equality zu gewährleisten (Hibernate/JPA)
+* Lombok gezielt und risikominimiert einzusetzen
+* technische Metadaten (Tags, Key-Value) konsistent zu modellieren, ohne redundante Persistenzattribute
 
 ---
 
 ## Entscheidung
 
-### 1. Trennung zwischen Domain und System
+### 1. Paketstruktur
 
-Die Anwendung unterscheidet explizit zwischen fachlichen und technischen Konzepten:
+Der personnel Service ist in folgende Hauptpakete gegliedert:
 
-* `domain` enthält ausschließlich fachliche Modelle (Aggregate, Entities, Value Objects)
-* `system` enthält ausschließlich technische und infrastrukturelle Konzepte
-
-**Abhängigkeitsregel:**
-
-* `domain` darf keine Abhängigkeiten zu `system` besitzen
-* `system` darf auf `domain` referenzieren (z. B. für Mapping oder Transport)
-
-Diese Trennung stellt sicher, dass die Domäne unabhängig von technischen Transport- oder Framework-Entscheidungen bleibt.
+* `web` – REST-Controller, API-Endpunkte
+* `domain` – Fachliche Aggregate, Value Objects, Domain Services
+* `persistence` – Repositories und Persistenzadapter
+* `system` – Technische Basiskomponenten (Shared Kernel)
+* `config` – Konfiguration
+* `security` – Sicherheitsintegration
 
 ---
 
-### 2. Package-Struktur
+### 2. Rolle des `system`-Packages
 
-Die oberste Package-Struktur der Anwendung ist verbindlich festgelegt:
+Das `system`-Package stellt einen **Shared Kernel für technische Infrastruktur** dar.
+
+Es enthält ausschließlich technische Basiskomponenten, z. B.:
+
+* `DomainEntity`
+* ID-Generierungsmechanismen
+* Auditierungsinfrastruktur
+* Metadaten-Mechanismen (Tags, Key-Value-Paare)
+* technische Hilfsklassen
+
+Das `system`-Package enthält **keine fachlichen Konzepte oder Domänenlogik**.
+
+---
+
+### 3. Abhängigkeitsregeln
+
+Die zulässigen Abhängigkeiten sind wie folgt definiert:
 
 ```
-de.cocondo.app
-├── domain
-├── system
-├── application
-├── persistence
-├── web
-├── config
-├── security
+web        → domain
+web        → system (nur technische Aspekte wie Error-Handling)
+
+domain     → system
+
+persistence → domain
+persistence → system
+
+system     → (keine Abhängigkeit zu domain)
 ```
 
-Regeln:
+Zentrale Regel:
 
-* Fachliche Untergliederung erfolgt innerhalb von `domain`
-* Technische Querschnitte liegen nicht im `domain`-Package
-* Zyklische Abhängigkeiten zwischen Top-Level-Packages sind unzulässig
+> Das `domain`-Package darf auf `system` zugreifen.
+> Das `system`-Package darf niemals auf `domain` zugreifen.
 
----
-
-### 3. Aggregate und Entities
-
-Aggregate Roots werden als normale JPA-Entities umgesetzt.
-
-Regeln:
-
-* Aggregate Roots erhalten kein Marker-Interface
-* Die Rolle als Aggregate Root ergibt sich aus fachlicher Bedeutung, Package-Kontext und Nutzung im Application Layer
-
-Begründung:
-
-Aggregate sind fachliche Konzepte. Eine technische Markierung würde keinen zusätzlichen fachlichen Nutzen bringen und die Persistenz unnötig verkomplizieren.
+Damit ist die Abhängigkeitsrichtung eindeutig von fachlich zu technisch gerichtet.
 
 ---
 
-### 4. Marker-Interface für DTOs
+### 4. Architekturprinzipien
 
-Alle Data Transfer Objects implementieren ein zentrales Marker-Interface:
+1. **Fachliche Isolation**
+   Sämtliche Geschäftslogik (Workflow-Regeln, Mutability-Prüfungen, Invarianten, Budget- und Kapazitätslogik, Ledger-Erzeugung etc.) befindet sich ausschließlich im `domain`-Package.
 
-```
-de.cocondo.app.system.dto.DataTransferObject
-```
+2. **Technische Kapselung**
+   Technische Infrastruktur (ID, Audit, Version-Feld, Basisklassen, generische Utilities) liegt ausschließlich im `system`-Package.
 
-Regeln:
+3. **Keine Zyklen**
+   Zyklische Paketabhängigkeiten sind unzulässig.
 
-* DTOs enthalten keine JPA-Annotationen
-* DTOs enthalten keine Business-Logik
-* DTOs dienen ausschließlich dem Transport zwischen Schichten
+4. **DomainEntity ist rein technisch**
+   Alle fachlichen Aggregate Roots erben von `system.entity.DomainEntity`.
+   `DomainEntity` enthält ausschließlich technische Basisfunktionalität (z. B. technische ID, Audit-Felder, Versionsfeld).
+   Sie enthält keine fachliche Logik, keine Workflow-Regeln und keine planbezogenen Konzepte.
 
-Das Marker-Interface dient der klaren Erkennbarkeit von DTOs und ermöglicht spätere Architektur- und Qualitätsprüfungen.
+5. **Workflow- und Mutability-Logik verbleiben in der Domäne**
+   Statusübergänge, Mutability-Prüfungen (z. B. DRAFT/APPROVED-Regeln) sowie Append-Only-Regeln werden ausschließlich im `domain`-Layer implementiert.
+   Das `system`-Package darf keine generischen Mechanismen enthalten, die fachliche Statuslogik erzwingen oder umgehen.
 
----
+6. **Ledger ist fachliches Konzept**
+   Ein fachliches Ledger (z. B. StaffingLedgerEntry) ist Bestandteil der Domäne.
+   Das `system`-Package stellt lediglich technische Audit-Infrastruktur bereit und darf kein fachliches Ereignisprotokoll enthalten.
 
-### 5. DTO-Typen und Verantwortlichkeiten
+7. **Repositories umgehen keine Fachregeln**
+   Persistenzkomponenten dürfen fachliche Mutability- oder Workflow-Regeln nicht umgehen.
+   Die Einhaltung von Lifecycle- und Append-Only-Regeln wird im Domain-Layer geprüft und ist vor Persistenzoperationen sicherzustellen.
 
-Es wird zwischen verschiedenen DTO-Arten unterschieden:
-
-1. **Payload DTOs**
-
-    * enthalten fachliche Daten ohne Kontext
-    * können für Create- oder Update-Vorgänge genutzt werden
-
-2. **DTOs mit ID**
-
-    * repräsentieren bestehende Aggregate
-    * enthalten zusätzlich die technische Identität
-
-3. **Use-Case-spezifische DTOs**
-
-    * explizit für konkrete Aktionen (z. B. Create, Partial Update)
-    * werden nicht wiederverwendet, wenn sich die Semantik unterscheidet
-
-Diese Differenzierung verhindert überladene DTOs und macht API-Semantik explizit.
+8. **Technik kennt keine Fachlichkeit**
+   Das `system`-Package darf keinerlei Referenzen auf fachliche Klassen oder planbezogene Aggregate enthalten.
 
 ---
 
-### 6. Klassenkommentare
+### 5. Verbindliche Regeln für `DomainEntity` und persistente Entities
 
-Alle Klassen müssen einen Klassenkommentar besitzen.
+Dieser Abschnitt konkretisiert technische Mindeststandards für Entities (Shared Kernel und fachliche Entities), um Stabilität, JPA-Kompatibilität und deterministisches Verhalten sicherzustellen.
 
-Der Kommentar beschreibt:
+#### 5.1 Equality-/HashCode-Strategie (Proxy-sicher)
 
-* die Rolle der Klasse
-* ihre Verantwortung im System
+* Entities müssen eine **proxy-sichere** Equality-Strategie verwenden.
+* `equals()` und `hashCode()` dürfen **keine** Collections, Relationen (z. B. `@OneToMany`, `@ManyToOne`) oder mutable Fachattribute einbeziehen.
+* Equality basiert auf:
 
-Implementierungsdetails werden nicht im Klassenkommentar dokumentiert.
+   * **technischer Identität** (ID) sobald gesetzt, und
+   * einer proxy-sicheren Klassenprüfung (Hibernate Proxy / `Hibernate.getClass(this)`-Strategie oder äquivalent).
+
+**Normative Regel:**
+
+> In Entities ist `@Data` nicht zulässig, wenn dadurch automatisch `equals()/hashCode()/toString()` generiert wird, die Relationen oder Collections einbeziehen könnten.
+
+#### 5.2 Lombok-Regeln (Entities und DTOs)
+
+**Für Entities (JPA):**
+
+* `@Data` ist **nicht** zulässig.
+* Zulässig sind zielgerichtete Lombok-Annotationen, z. B.:
+
+   * `@Getter`, `@Setter`
+   * `@NoArgsConstructor` (sofern JPA benötigt)
+   * `@ToString(onlyExplicitlyIncluded = true)` bzw. selektive `@ToString.Include`
+   * `@EqualsAndHashCode(onlyExplicitlyIncluded = true)` oder projektweit definierte, explizite Strategy
+* Relationen müssen aus `toString()` und `equals()/hashCode()` ausgeschlossen werden (z. B. `@ToString.Exclude`, `@EqualsAndHashCode.Exclude`).
+
+**Für DTOs:**
+
+* DTOs dürfen `@Data` verwenden, **sofern** keine Vererbung betroffen ist.
+* Bei DTO-Vererbung ist `@EqualsAndHashCode(callSuper = false/true)` explizit zu setzen, um Warnungen und implizite Entscheidungen zu vermeiden.
+
+#### 5.3 `toString()`-Regeln
+
+* `toString()` darf keine Relationen traversieren (Lazy-Loading/Proxy-Fallen).
+* Es sollen nur stabile Identifikatoren/Schlüsselfelder enthalten sein.
+
+#### 5.4 ID, Version und Audit als technische Querschnittsthemen
+
+* ID, Persistence-Version und Audit-Felder sind technische Basiseigenschaften.
+* Fachliche Invarianten dürfen nicht von Audit-/Technikfeldern abhängen.
 
 ---
 
-### 7. Schichtentrennung
+### 6. Metadaten (Tags / Key-Value) als Teil des technischen Shared Kernel
 
-Die Anwendung folgt einer klaren Schichtenarchitektur:
+Metadaten dienen der technischen, dynamischen Erweiterbarkeit von DomainEntities.
 
-* Web Layer kommuniziert ausschließlich mit dem Application Layer
-* Der Application Layer ist der einzige Zugriffspunkt auf Aggregate
-* Der Persistence Layer ist rein technisch und enthält keine Business-Logik
+#### 6.1 Grundprinzip
 
----
+* Metadaten sind **technisch**.
+* Metadaten enthalten **keine** fachliche Logik, keine fachlichen Invarianten und keine Workflow-Regeln.
 
-### 8. Umgang mit statischem Zustand
+#### 6.2 Modellierungsregeln für Key-Value-Paare
 
-Regeln:
+* Ein Key-Value-Paar referenziert genau eine `DomainEntity` (Many-to-One).
+* Es muss eine fachlich sinnvolle Eindeutigkeitsregel geben, z. B. `(domain_entity_id, key_name)`.
 
-* Keine fachlichen Informationen in statischen Feldern
-* Konfiguration erfolgt ausschließlich über Dependency Injection und Properties
+**Redundanzregel (verbindlich):**
 
-Dies stellt einen kontrollierten Lifecycle und eine saubere Testbarkeit sicher.
+> Relationale Beziehungen dürfen nicht redundant als zusätzliches Persistenzfeld (z. B. nochmals als `entityId`) modelliert werden.
 
----
+Das bedeutet:
 
-### 9. Konventionsbasierte Architektur
+* Wenn eine Relation `domainEntity` existiert, ist sie die **einzige Quelle der Wahrheit** für die Zuordnung.
+* Es darf kein zusätzliches FK-Spiegel-Feld in derselben Entity existieren.
+* Unique-Constraints und Indizes sind ausschließlich auf Basis der tatsächlichen FK-Spalte (`domain_entity_id`) zu definieren.
 
-Die Architektur wird primär durch Konventionen umgesetzt:
+Diese Regel dient der Vermeidung von Inkonsistenzen, Nullability-Fehlern und Synchronisationslogik zwischen doppelten Attributen.
 
-* Package-Struktur
-* Namenskonventionen
-* klare Verantwortlichkeiten
+#### 6.3 SQL/DB-Kompatibilität
 
-Framework-spezifische Marker werden nur dort eingesetzt, wo sie fachlich oder technisch notwendig sind.
+* Spaltennamen müssen so gewählt werden, dass keine Konflikte mit SQL-Keywords entstehen.
+
+* Falls erforderlich, sind explizite Spaltennamen zu definie
+
+* Spaltennamen müssen so gewählt werden, dass keine Konflikte mit SQL-Keywords entstehen.
+
+* Falls erforderlich, sind explizite Spaltennamen zu definieren.
 
 ---
 
 ## Konsequenzen
 
-**Positive Auswirkungen:**
+* Die Verwendung von `DomainEntity` innerhalb fachlicher Entitäten ist explizit zulässig.
+* Gemeinsame technische Mechanismen (ID, Audit, Versionierung, Metadaten) werden zentral im `system`-Package gehalten.
+* Änderungen an Basiskomponenten erfolgen ausschließlich im `system`-Package.
+* ArchUnit-Tests oder vergleichbare Prüfmechanismen sollten die Abhängigkeitsrichtung absichern.
 
-* klare fachlich-technische Trennung
-* hohe Wartbarkeit und Erweiterbarkeit
-* geringe Gefahr unbeabsichtigter Architekturabweichungen
-* gute Grundlage für spätere Architekturprüfungen (z. B. ArchUnit)
+Zusätzliche Konsequenzen aus Version 3:
 
-**Negative Auswirkungen / Trade-offs:**
-
-* höherer initialer Disziplinbedarf
-* mehr explizite Klassen (z. B. spezifische DTOs)
-
-Diese Trade-offs werden bewusst akzeptiert zugunsten langfristiger Qualität.
+* Für Entities gilt eine verbindliche Lombok- und Equality-Policy.
+* `@Data` ist in JPA-Entities verboten.
+* Metadaten-Entities müssen redundant-frei bzw. deterministisch synchronisiert modelliert sein.
 
 ---
 
-## Gültigkeit
+## Begründung
 
-Diese Architekturentscheidungen gelten ab Sprint 1 für den gesamten IDM Service.
+Diese Regelung ermöglicht:
 
-Abweichungen sind nur zulässig, wenn sie durch ein neues ADR explizit dokumentiert und begründet werden.
+* klare Trennung von Fachlichkeit und Technik
+* Wiederverwendbarkeit technischer Basiskomponenten
+* konsistente ID-, Audit- und Versionierungsstrategien
+* stabile Erweiterbarkeit der Domäne ohne technische Streuung
+* proxy-sicheres Verhalten von Entities unter Hibernate/JPA
+* deterministische Persistenz von Metadaten ohne Inkonsistenzrisiken
+
+Die Architektur entspricht damit einer klar definierten Schichtenarchitektur mit einem technischen Shared Kernel und einer strikt eingehaltenen Abhängigkeitsrichtung.

@@ -1,1 +1,13 @@
-# application-dev.yml - Development profile configuration
+# application-dev.yml - IDM Development profile configuration
+
+spring:
+  profiles:
+    include: dev
+
+  jpa:
+    hibernate:
+      ddl-auto: create
+
+logging:
+  level:
+    root: INFO

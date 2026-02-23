@@ -1,12 +1,8 @@
-# application.yml
-# Sprint 2 configuration – Hibernate initial schema generation
+# application.yml - IDM default and production profile configuration
 
 spring:
   application:
     name: idm-service
-
-  profiles:
-    active: dev
 
   datasource:
     url: jdbc:mariadb://localhost:3306/idm
