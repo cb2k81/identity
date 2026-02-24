@@ -1,5 +1,7 @@
 package de.cocondo.app.system.security.jwt;
 
+import de.cocondo.app.system.security.authorization.PermissionResolver;
+
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
@@ -8,6 +10,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
@@ -15,6 +18,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 import java.util.Collections;
+import java.util.List;
 
 /**
  * JWT authentication filter (technical).
@@ -25,16 +29,18 @@ import java.util.Collections;
  * - Parse claims
  * - Populate Spring SecurityContext with Authentication
  *
- * TODO-ARCH: Authorities/permissions mapping will be added later when IDM introduces a permission model.
+ * Authorities/permissions are resolved via PermissionResolver based on token claims.
  * TODO-ARCH: Token expiration and revocation checks (domain-driven) are out of scope for MVP.
  */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
+    private final PermissionResolver permissionResolver;
 
-    public JwtAuthenticationFilter(JwtService jwtService) {
+    public JwtAuthenticationFilter(JwtService jwtService, PermissionResolver permissionResolver) {
         this.jwtService = jwtService;
+        this.permissionResolver = permissionResolver;
     }
 
     @Override
@@ -70,10 +76,20 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (principal != null && !principal.isBlank()
                     && SecurityContextHolder.getContext().getAuthentication() == null) {
 
+                List<String> roleNames = readStringListClaim(claims, "roles");
+                String applicationKey = claims.get("applicationKey", String.class);
+                String stageKey = claims.get("stageKey", String.class);
+
+                List<SimpleGrantedAuthority> authorities =
+                        permissionResolver.resolveAuthorities(applicationKey, stageKey, roleNames)
+                                .stream()
+                                .map(SimpleGrantedAuthority::new)
+                                .toList();
+
                 var authentication = new UsernamePasswordAuthenticationToken(
                         principal,
                         "N/A",
-                        Collections.emptyList()
+                        authorities
                 );
 
                 authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
@@ -88,4 +104,30 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
         }
     }
+
+    @SuppressWarnings("unchecked")
+    private static List<String> readStringListClaim(Claims claims, String name) {
+
+        Object raw = claims.get(name);
+
+        if (raw == null) {
+            return Collections.emptyList();
+        }
+
+        if (raw instanceof List<?> list) {
+            return list.stream()
+                    .filter(v -> v != null)
+                    .map(Object::toString)
+                    .filter(v -> !v.isBlank())
+                    .toList();
+        }
+
+        // tolerate single string claim
+        String asString = raw.toString();
+        if (asString.isBlank()) {
+            return Collections.emptyList();
+        }
+        return List.of(asString);
+    }
+
 }

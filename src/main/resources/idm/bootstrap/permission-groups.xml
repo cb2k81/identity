@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<permissionGroups>
+    <items>
+        <permissionGroup>
+            <name>IDM_SCOPE</name>
+            <description>ApplicationScope management</description>
+        </permissionGroup>
+        <permissionGroup>
+            <name>IDM_PERMISSION</name>
+            <description>Permission &amp; role management</description>
+        </permissionGroup>
+        <permissionGroup>
+            <name>IDM_USER</name>
+            <description>User management</description>
+        </permissionGroup>
+    </items>
+</permissionGroups>

@@ -115,6 +115,12 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- Jackson XML (Bootstrap InitData parsing) -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.dataformat</groupId>
+            <artifactId>jackson-dataformat-xml</artifactId>
+        </dependency>
+
         <!-- JWT (JJWT 0.11.x for Boot 3) -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>

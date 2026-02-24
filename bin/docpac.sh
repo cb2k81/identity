@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-source "$(dirname "$0")/env.sh"
+source "$(dirname "$0")/../.env"
 # ==============================================================================
 # Personnel Service – Documentation Package Generator
 # ------------------------------------------------------------------------------
@@ -42,7 +42,9 @@ SOURCES=(
   "src/main/resources/application-test.yml"
   "src/main/resources/db/**"
   "src/main/resources/doc/**"
+  "src/main/resources/idm/**"
   "src/test/java/**"
+  "src/test/resources/**"
 )
 
 

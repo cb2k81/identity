@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<roles>
+    <items>
+        <role>
+            <name>IDM_ADMIN</name>
+            <description>IDM Admin (FORCE override)</description>
+            <systemProtected>true</systemProtected>
+        </role>
+    </items>
+</roles>

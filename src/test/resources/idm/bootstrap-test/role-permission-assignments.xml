@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rolePermissionAssignments>
+    <items>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_SCOPE_READ</permissionName>
+        </assignment>
+    </items>
+</rolePermissionAssignments>

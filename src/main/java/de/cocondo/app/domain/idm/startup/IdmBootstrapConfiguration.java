@@ -7,6 +7,9 @@ import org.springframework.context.annotation.Configuration;
  * Enables binding of IDM bootstrap configuration properties.
  */
 @Configuration
-@EnableConfigurationProperties(IdmBootstrapProperties.class)
+@EnableConfigurationProperties({
+        IdmBootstrapProperties.class,
+        IdmSelfProperties.class
+})
 public class IdmBootstrapConfiguration {
 }

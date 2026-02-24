@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<permissions>
+    <items>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_SCOPE_READ</name>
+            <description>Read scopes (FORCE override)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+    </items>
+</permissions>

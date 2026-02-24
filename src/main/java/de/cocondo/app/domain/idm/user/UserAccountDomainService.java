@@ -1,8 +1,10 @@
 package de.cocondo.app.domain.idm.user;
 
 import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntityService;
+import de.cocondo.app.domain.idm.assignment.UserRoleAssignmentEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
+import de.cocondo.app.domain.idm.role.Role;
 import de.cocondo.app.domain.idm.user.dto.AuthenticateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
@@ -13,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -40,6 +43,7 @@ public class UserAccountDomainService {
     private final UserAccountEntityService userAccountEntityService;
     private final ApplicationScopeEntityService applicationScopeEntityService;
     private final UserApplicationScopeAssignmentEntityService userApplicationScopeAssignmentEntityService;
+    private final UserRoleAssignmentEntityService userRoleAssignmentEntityService;
     private final PasswordEncoder passwordEncoder;
 
     public UserAccountDTO createUser(CreateUserRequestDTO request) {
@@ -58,7 +62,7 @@ public class UserAccountDomainService {
                 userAccountEntityService.loadByUsername(request.getUsername());
 
         if (existing.isPresent()) {
-            throw new IllegalArgumentException("Username already exists: " + request.getUsername());
+            throw new IllegalArgumentException("username already exists");
         }
 
         UserAccount user = new UserAccount();
@@ -68,12 +72,12 @@ public class UserAccountDomainService {
 
         UserAccount saved = userAccountEntityService.save(user);
 
-        log.info("UserAccount created: id={}, username={}", saved.getId(), saved.getUsername());
-
         UserAccountDTO dto = new UserAccountDTO();
         dto.setId(saved.getId());
         dto.setUsername(saved.getUsername());
         dto.setState(saved.getState());
+
+        log.info("User created: id={}, username={}, state={}", saved.getId(), saved.getUsername(), saved.getState());
 
         return dto;
     }
@@ -127,6 +131,21 @@ public class UserAccountDomainService {
         AuthenticatedUserDTO dto = new AuthenticatedUserDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
+
+        dto.setApplicationKey(scope.getApplicationKey());
+        dto.setStageKey(scope.getStageKey());
+
+        List<String> roles = userRoleAssignmentEntityService
+                .loadAllByUserAccountId(user.getId())
+                .stream()
+                .map(a -> a.getRole())
+                .filter(r -> r.getApplicationScope().getId().equals(scope.getId()))
+                .map(Role::getName)
+                .distinct()
+                .sorted()
+                .toList();
+
+        dto.setRoles(roles);
 
         log.info("User authenticated: userId={}, username={}, applicationKey={}, stageKey={}",
                 user.getId(), user.getUsername(), scope.getApplicationKey(), scope.getStageKey());

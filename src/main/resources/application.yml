@@ -48,6 +48,17 @@ logging:
 idm:
   bootstrap:
     enabled: false
+    mode: safe
+    base-path: idm/bootstrap
+    admin-xml: admin.xml
+    scopes-xml: scopes.xml
+    admin:
+      username: admin
+      password: admin
+  self:
+    scope:
+      application-key: IDM
+      stage-key: PROD
   security:
     jwt:
       secret: q3X9mJf8R2vKpL6YtWzD1sHcE4nB7uV5aF0xT8rYpQ6wZkN3cJ9dL2mS7hGvU4ePjR1tX6yBqC8nM5kL0zWfD3uH

@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<userRoleAssignments>
+    <items>
+        <assignment>
+            <username>admin</username>
+            <roleName>IDM_ADMIN</roleName>
+        </assignment>
+    </items>
+</userRoleAssignments>

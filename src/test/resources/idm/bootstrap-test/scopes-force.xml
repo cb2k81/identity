@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<applicationScopes>
+    <items>
+        <scope>
+            <applicationKey>IDM</applicationKey>
+            <stageKey>TEST</stageKey>
+            <description>IDM Test (FORCE override)</description>
+        </scope>
+    </items>
+</applicationScopes>

@@ -11,3 +11,15 @@ spring:
 logging:
   level:
     root: INFO
+
+idm:
+  bootstrap:
+    enabled: false
+    mode: safe
+    base-path: idm/bootstrap
+    admin-xml: admin.xml
+    scopes-xml: scopes.xml
+  self:
+    scope:
+      application-key: IDM
+      stage-key: DEV

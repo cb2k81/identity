@@ -47,6 +47,9 @@ public class IdmTokenService {
 
         claims.put("sub", user.getId());
         claims.put("username", user.getUsername());
+        claims.put("applicationKey", user.getApplicationKey());
+        claims.put("stageKey", user.getStageKey());
+        claims.put("roles", user.getRoles());
 
         Date expiration = calculateExpiration();
         String token = jwtService.generateToken(claims, expiration);
