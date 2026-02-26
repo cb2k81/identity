@@ -14,10 +14,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 
-import static de.cocondo.app.domain.idm.management.IdmManagementAuthorities.IDM_USER_CREATE;
-import static de.cocondo.app.domain.idm.management.IdmManagementAuthorities.IDM_USER_DELETE;
-import static de.cocondo.app.domain.idm.management.IdmManagementAuthorities.IDM_USER_READ;
-import static de.cocondo.app.domain.idm.management.IdmManagementAuthorities.IDM_USER_UPDATE;
+import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_CREATE;
+import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_DELETE;
+import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_READ;
+import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_UPDATE;
 
 @Service
 @RequiredArgsConstructor

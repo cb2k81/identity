@@ -35,4 +35,9 @@ public class ApplicationScopeEntityService {
     public ApplicationScope save(ApplicationScope scope) {
         return repository.save(scope);
     }
+
+    @Transactional
+    public void delete(ApplicationScope scope) {
+        repository.delete(scope);
+    }
 }

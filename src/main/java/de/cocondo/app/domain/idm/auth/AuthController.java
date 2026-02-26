@@ -1,5 +1,8 @@
 package de.cocondo.app.domain.idm.auth;
 
+import de.cocondo.app.domain.idm.auth.dto.LoginRequestDTO;
+import de.cocondo.app.domain.idm.auth.dto.LoginResponseDTO;
+import de.cocondo.app.domain.idm.auth.dto.MeResponseDTO;
 import de.cocondo.app.domain.idm.user.InvalidCredentialsException;
 import de.cocondo.app.domain.idm.user.dto.AuthenticateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
