@@ -15,9 +15,7 @@ import de.cocondo.app.domain.idm.role.RoleEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccount;
-import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
-import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -40,7 +38,6 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
     private final IdmBootstrapXmlLoader xmlLoader;
 
     private final ApplicationScopeEntityService applicationScopeEntityService;
-    private final UserAccountDomainService userAccountDomainService;
     private final UserAccountEntityService userAccountEntityService;
     private final UserApplicationScopeAssignmentEntityService assignmentEntityService;
 
@@ -421,18 +418,17 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         Optional<UserAccount> existingOpt = userAccountEntityService.loadByUsername(username);
 
         if (existingOpt.isEmpty()) {
-            CreateUserRequestDTO dto = new CreateUserRequestDTO();
-            dto.setUsername(username);
-            dto.setPassword(password);
+            // Bootstrap MUST NOT depend on SecurityContext / Method-Security.
+            // Therefore we do NOT call a potentially @PreAuthorize-protected DomainService here.
+            UserAccount created = new UserAccount();
+            created.setUsername(username);
+            created.setPasswordHash(passwordEncoder.encode(password));
+            created.activate();
 
-            userAccountDomainService.createUser(dto);
+            UserAccount saved = userAccountEntityService.save(created);
 
-            // Reload entity for assignment creation
-            UserAccount created = userAccountEntityService.loadByUsername(username)
-                    .orElseThrow(() -> new IllegalStateException("Admin user creation failed unexpectedly: " + username));
-
-            log.info("Created admin user: id={}, username={}", created.getId(), created.getUsername());
-            return created;
+            log.info("Created admin user: id={}, username={}", saved.getId(), saved.getUsername());
+            return saved;
         }
 
         UserAccount existing = existingOpt.get();

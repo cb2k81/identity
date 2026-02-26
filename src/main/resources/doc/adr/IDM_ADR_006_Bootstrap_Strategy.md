@@ -1,7 +1,7 @@
 # IDM – ADR 006: Bootstrap / Initial Data Strategy
 
-Stand: 2026-02-24
-Status: Accepted (Sprint 4 – verbindliche Architektur)
+Stand: 2026-02-26
+Status: Accepted (Sprint 4 – verbindliche Architektur, aktualisiert gemäß neuer Baseline)
 
 ---
 
@@ -12,13 +12,11 @@ Das Identity Management (IDM) benötigt beim Start definierte Basisdaten, um fun
 * ApplicationScopes (z. B. IDM / DEV, TEST, PROD)
 * Ein initialer Admin-User
 * Scope-Zuordnungen für den Admin
-
-In späteren Ausbaustufen zusätzlich:
-
 * PermissionGroups
 * Permissions
 * Rollen
 * Role–Permission-Zuordnungen
+* User–Role-Zuordnungen
 
 Da das IDM selbst Rollen und Berechtigungen für andere Fachanwendungen verwaltet, muss die Initialisierung:
 
@@ -26,9 +24,12 @@ Da das IDM selbst Rollen und Berechtigungen für andere Fachanwendungen verwalte
 * idempotent sein
 * deterministisch sein
 * architekturkonform (DDD) implementiert werden
+* ausschließlich über die vorgesehenen Service-Schichten erfolgen
 * ohne Umgehung der Domain-Invarianten erfolgen
 
 Die Initialisierung darf keine bestehenden fachlichen Daten unbeabsichtigt überschreiben oder löschen.
+
+Sprint 4 erweitert den Bootstrap verbindlich auf das vollständige Rollen- und Berechtigungsmodell innerhalb des Self-Scopes.
 
 ---
 
@@ -39,8 +40,13 @@ Sicherstellen, dass beim Start der Anwendung:
 1. Der für diese Instanz konfigurierte Self-Scope existiert.
 2. Ein initialer Admin-Account vorhanden ist.
 3. Der Admin dem Self-Scope zugeordnet ist.
-4. Die Initialisierung deterministisch und wiederholbar ist.
-5. Safe- und Force-Modus klar definiert sind.
+4. PermissionGroups, Permissions und Rollen des Self-Scopes existieren.
+5. Role–Permission-Zuordnungen korrekt gesetzt sind.
+6. User–Role-Zuordnungen (insbesondere für Admin) korrekt gesetzt sind.
+7. Die Initialisierung deterministisch und wiederholbar ist.
+8. Safe- und Force-Modus klar definiert sind.
+
+Der Bootstrap erzeugt ausschließlich Daten für den konfigurierten Self-Scope.
 
 ---
 
@@ -54,7 +60,15 @@ Bootstrap folgt einem klaren Trennungsprinzip:
 
 * XML-Dateien im Classpath
 * Versionierbar
-* Enthalten alle deklarativen Scope-Definitionen
+* Enthalten deklarative Definitionen für:
+
+    * Scopes
+    * Admin-User
+    * PermissionGroups
+    * Permissions
+    * Rollen
+    * Role–Permission-Zuordnungen
+    * User–Role-Zuordnungen
 
 **Selektion (Deployment-spezifisch):**
 
@@ -68,7 +82,7 @@ Damit ist die Umgebung explizit konfiguriert und nicht implizit aus Profilnamen 
 
 ### 3.2 XML-Struktur
 
-Bootstrap verwendet getrennte XML-Dateien:
+Bootstrap verwendet getrennte XML-Dateien.
 
 Pfad (konfigurierbar):
 
@@ -76,31 +90,17 @@ Pfad (konfigurierbar):
 src/main/resources/idm/bootstrap/
 ```
 
-Dateien:
+Dateien (konfigurierbar):
 
-* `admin-user.xml`
 * `scopes.xml`
+* `admin-user.xml`
+* `permission-groups.xml`
+* `permissions.xml`
+* `roles.xml`
+* `role-permission-assignments.xml`
+* `user-role-assignments.xml`
 
-#### scopes.xml
-
-Definiert alle ApplicationScopes deklarativ:
-
-* applicationKey
-* stageKey
-* description
-
-Beispiel:
-
-* (IDM, DEV)
-* (IDM, TEST)
-* (IDM, PROD)
-
-#### admin-user.xml
-
-Definiert:
-
-* username
-* password (Klartext; wird beim Persistieren gehasht)
+Jede Datei enthält ausschließlich deklarative Definitionen. Die Persistenzlogik liegt vollständig im Code.
 
 ---
 
@@ -117,25 +117,33 @@ idm:
 
 Der Bootstrap:
 
-1. Lädt alle Scopes aus `scopes.xml`
-2. Sucht exakt den konfigurierten Self-Scope
-3. Wirft eine Exception, wenn dieser nicht existiert
-4. Persistiert/aktualisiert ausschließlich diesen Scope
+1. Lädt alle Scopes aus `scopes.xml`.
+2. Sucht exakt den konfigurierten Self-Scope.
+3. Wirft eine Exception, wenn dieser nicht existiert.
+4. Persistiert bzw. aktualisiert ausschließlich diesen Scope.
+5. Alle weiteren Bootstrap-Daten werden ausschließlich für diesen Scope verarbeitet.
 
 Es erfolgt keine automatische Ableitung aus `spring.profiles.active`.
 
 ---
 
-### 3.4 Ausführung
+### 3.4 Ausführung und Schichtenkonformität
 
 Die Initialisierung erfolgt über einen `ApplicationReadyEvent`-Listener.
 
 Eigenschaften:
 
 * Orchestrierungskomponente im Domain-Startup-Package
-* Keine direkte Repository-Nutzung
-* Nutzung von Domain-Services und Entity-Services
+* Keine direkte Repository-Nutzung im Listener
+* Nutzung ausschließlich von Entity-Services
+* Keine Nutzung von Domain-Services für Persistenzoperationen
 * Keine HTTP- oder Security-Abhängigkeit
+
+Der Bootstrap arbeitet strikt schichtenkonform:
+
+* Listener → Entity-Services → Repositories
+* Keine Umgehung von Invarianten
+* Keine direkte Datenbankmanipulation
 
 Bootstrap ist ein interner System-Use-Case und benötigt keinen SYSTEM-Account.
 
@@ -150,11 +158,15 @@ Bootstrap kennt zwei Modi:
 * Fehlende Scopes werden angelegt.
 * Fehlender Admin wird angelegt.
 * Fehlende Scope-Zuordnung wird angelegt.
+* Fehlende PermissionGroups, Permissions und Rollen werden angelegt.
+* Fehlende Role–Permission-Zuordnungen werden angelegt.
+* Fehlende User–Role-Zuordnungen werden angelegt.
 * Bestehende Daten werden nicht verändert.
 * Keine Passwort-Resets.
 * Keine State-Änderungen.
 
 Safe-Modus ist vollständig idempotent.
+Mehrfaches Ausführen führt zu keinem zusätzlichen Datensatz und keiner Änderung bestehender Datensätze.
 
 ---
 
@@ -164,6 +176,7 @@ Safe-Modus ist vollständig idempotent.
 * Admin-Passwort wird neu gesetzt (gehasht).
 * Admin wird aktiviert.
 * Scope-Zuordnung wird sichergestellt.
+* Deklarativ definierte Felder dürfen aktualisiert werden.
 
 Force überschreibt nur explizit definierte Felder.
 Es erfolgen keine Löschoperationen.
@@ -180,11 +193,13 @@ idm:
     enabled: false
     mode: safe
     base-path: idm/bootstrap
-    admin-xml: admin-user.xml
     scopes-xml: scopes.xml
-    admin:
-      username: admin
-      password: admin
+    admin-xml: admin-user.xml
+    permission-groups-xml: permission-groups.xml
+    permissions-xml: permissions.xml
+    roles-xml: roles.xml
+    role-permission-assignments-xml: role-permission-assignments.xml
+    user-role-assignments-xml: user-role-assignments.xml
 ```
 
 ### Verhalten
@@ -202,8 +217,9 @@ Beim Bootstrap wird:
 
 1. Der Admin erzeugt, falls nicht vorhanden.
 2. Das Passwort mittels PasswordEncoder gehasht.
-3. Der Admin aktiviert.
+3. Der Admin aktiviert (je nach Modus).
 4. Die Zuordnung zum Self-Scope sichergestellt.
+5. Die in XML definierten Rollen dem Admin zugeordnet.
 
 Im Safe-Modus erfolgt kein Passwort-Reset.
 Im Force-Modus wird das Passwort neu gesetzt.
@@ -224,6 +240,7 @@ identifiziert.
 Damit können DEV, TEST und PROD unterschiedliche Konfigurationen besitzen.
 
 Das Modell bleibt vollständig stage-isoliert.
+Der Bootstrap erzeugt niemals Daten außerhalb des konfigurierten Self-Scopes.
 
 ---
 
@@ -235,15 +252,24 @@ Die Bootstrap-Architektur ist durch Integrationstests abgesichert:
 * Safe-Modus → Erstellung fehlender Daten
 * Idempotenz
 * Force-Modus → gezielte Aktualisierung
+* Vollständiger Rollen- und Permission-Bootstrap
 * Fehlerszenarien (fehlende XML, fehlender Self-Scope)
 
 Tests verwenden separate Test-XML-Dateien und überschreiben Properties per `@TestPropertySource`.
+
+Die Tests prüfen insbesondere:
+
+* korrekte Anzahl von PermissionGroups, Permissions und Rollen
+* korrekte Role–Permission-Zuordnungen
+* korrekte User–Role-Zuordnungen
+* keine Duplikate bei mehrfacher Ausführung
 
 ---
 
 ## 9. Nicht Bestandteil dieses ADR
 
-* Rollen- und Permission-Bootstrap (separat dokumentiert)
+* JWT-Claim-Strategie
+* Record-Level-Permissions
 * Liquibase-Migrationen
 * Mandantenfähigkeit
 * REST-basierter Bootstrap-Trigger
@@ -258,4 +284,6 @@ Definition (XML) und Deployment-Selektion (application.yml) sind strikt getrennt
 
 Bootstrap arbeitet deterministisch, stage-spezifisch und überschreibt bestehende Daten ausschließlich im definierten Force-Modus.
 
-Damit ist das IDM nach jedem Start konsistent initialisiert, ohne produktive Daten unbeabsichtigt zu verändern.
+Seit Sprint 4 umfasst der Bootstrap verbindlich das vollständige Rollen- und Berechtigungsmodell des Self-Scopes.
+
+Damit ist das IDM nach jedem Start konsistent initialisiert, ohne produktive Daten unbeabsichtigt zu verändern und ohne Verletzung der definierten Architekturregeln.

@@ -7,15 +7,14 @@ import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntity
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccount;
-import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
-import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -27,10 +26,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * Integration test for the global path security rules:
+ *
  * - /public/** is reachable anonymously (200) and also with token (200)
  * - /api/** requires authentication:
  *   - no token => 401
  *   - valid token => 200
+ *
+ * NOTE:
+ * Testdaten werden ausschließlich über EntityServices erzeugt.
+ * DomainServices werden hier NICHT verwendet (Method Security).
  */
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -49,9 +53,6 @@ public class HttpSecurityPathIntegrationTest {
     private ObjectMapper objectMapper;
 
     @Autowired
-    private UserAccountDomainService userAccountDomainService;
-
-    @Autowired
     private UserAccountEntityService userAccountEntityService;
 
     @Autowired
@@ -59,6 +60,9 @@ public class HttpSecurityPathIntegrationTest {
 
     @Autowired
     private UserApplicationScopeAssignmentEntityService userScopeAssignmentService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     private ApplicationScope scope;
     private UserAccount user;
@@ -77,19 +81,16 @@ public class HttpSecurityPathIntegrationTest {
                     return applicationScopeEntityService.save(s);
                 });
 
-        // 2) User sicherstellen
-        try {
-            CreateUserRequestDTO dto = new CreateUserRequestDTO();
-            dto.setUsername(TEST_USERNAME);
-            dto.setPassword(TEST_PASSWORD);
-            userAccountDomainService.createUser(dto);
-        } catch (IllegalArgumentException ignored) {
-            // user already exists
-        }
-
+        // 2) User sicherstellen (über EntityService, NICHT DomainService)
         user = userAccountEntityService
                 .loadByUsername(TEST_USERNAME)
-                .orElseThrow();
+                .orElseGet(() -> {
+                    UserAccount u = new UserAccount();
+                    u.setUsername(TEST_USERNAME);
+                    u.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
+                    u.activate();
+                    return userAccountEntityService.save(u);
+                });
 
         // 3) Scope-Zuordnung sicherstellen
         if (!userScopeAssignmentService
@@ -150,6 +151,7 @@ public class HttpSecurityPathIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginRequest))
                 .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();

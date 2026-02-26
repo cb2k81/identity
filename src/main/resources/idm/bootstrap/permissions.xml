@@ -71,6 +71,31 @@
         </permission>
         <permission>
             <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_CREATE</name>
+            <description>Create users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_READ</name>
+            <description>Read users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_UPDATE</name>
+            <description>Update users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_DELETE</name>
+            <description>Delete users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
             <name>IDM_USER_ROLE_ASSIGN</name>
             <description>Assign roles to users</description>
             <systemProtected>true</systemProtected>

@@ -19,7 +19,22 @@ idm:
     base-path: idm/bootstrap
     admin-xml: admin.xml
     scopes-xml: scopes.xml
+    permission-groups-xml: permission-groups.xml
+    permissions-xml: permissions.xml
+    roles-xml: roles.xml
+    role-permission-assignments-xml: role-permission-assignments.xml
+    user-role-assignments-xml: user-role-assignments.xml
+    admin:
+      username: admin
+      password: admin
+
   self:
     scope:
       application-key: IDM
       stage-key: DEV
+
+  security:
+    jwt:
+      # DEV darf eigenes Secret haben (separat von PROD), aber muss existieren
+      secret: dev-secret-32-bytes-minimum-length-1234567
+      ttl-ms: 3600000

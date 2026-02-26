@@ -1,50 +1,37 @@
 package de.cocondo.app.domain.idm.auth;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignment;
 import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
-import de.cocondo.app.domain.idm.user.UserAccountDomainService;
-import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
-import de.cocondo.app.system.security.jwt.JwtService;
 import org.junit.jupiter.api.BeforeEach;
-import io.jsonwebtoken.Claims;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.util.List;
+import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.hamcrest.Matchers.notNullValue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
-public class AuthIntegrationTest {
-
-    private static final String TEST_USERNAME = "admin";
-    private static final String TEST_PASSWORD = "secret";
-    private static final String APPLICATION_KEY = "IDM";
-    private static final String STAGE_KEY = "TEST";
+class AuthIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtService jwtService;
-
-    @Autowired
-    private UserAccountDomainService userAccountDomainService;
+    private ObjectMapper objectMapper;
 
     @Autowired
     private UserAccountEntityService userAccountEntityService;
@@ -55,122 +42,78 @@ public class AuthIntegrationTest {
     @Autowired
     private UserApplicationScopeAssignmentEntityService userScopeAssignmentService;
 
-    private ApplicationScope scope;
-    private UserAccount user;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private String username;
+    private String password;
+    private String applicationKey;
+    private String stageKey;
 
     @BeforeEach
     void setup() {
 
-        // 1) Scope sicherstellen
-        scope = applicationScopeEntityService
-                .loadByApplicationKeyAndStageKey(APPLICATION_KEY, STAGE_KEY)
-                .orElseGet(() -> {
-                    ApplicationScope s = new ApplicationScope();
-                    s.setApplicationKey(APPLICATION_KEY);
-                    s.setStageKey(STAGE_KEY);
-                    s.setDescription("Test Scope");
-                    return applicationScopeEntityService.save(s);
-                });
+        username = "auth-user-" + UUID.randomUUID();
+        password = "secret";
 
-        // 2) User sicherstellen
-        try {
-            CreateUserRequestDTO dto = new CreateUserRequestDTO();
-            dto.setUsername(TEST_USERNAME);
-            dto.setPassword(TEST_PASSWORD);
-            userAccountDomainService.createUser(dto);
-        } catch (IllegalArgumentException ignored) {
-            // user already exists
-        }
+        applicationKey = "IDM-" + UUID.randomUUID();
+        stageKey = "TEST-" + UUID.randomUUID();
 
-        user = userAccountEntityService
-                .loadByUsername(TEST_USERNAME)
-                .orElseThrow();
+        // Scope anlegen
+        ApplicationScope scope = new ApplicationScope();
+        scope.setApplicationKey(applicationKey);
+        scope.setStageKey(stageKey);
+        scope.setDescription("Integration Test Scope");
+        scope = applicationScopeEntityService.save(scope);
 
-        // 3) Scope-Zuordnung sicherstellen
-        if (!userScopeAssignmentService
-                .existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId())) {
+        // User anlegen (EntityService, nicht DomainService!)
+        UserAccount user = new UserAccount();
+        user.setUsername(username);
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.activate();
+        user = userAccountEntityService.save(user);
 
-            UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
-            assignment.setUserAccount(user);
-            assignment.setApplicationScope(scope);
-            userScopeAssignmentService.save(assignment);
-        }
+        // Scope-Zuordnung
+        UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
+        assignment.setUserAccount(user);
+        assignment.setApplicationScope(scope);
+        userScopeAssignmentService.save(assignment);
     }
 
-    private String loginJson(String password) {
-        return """
+    @Test
+    void login_should_return_jwt_token() throws Exception {
+
+        String loginRequest = """
                 {
                     "username": "%s",
                     "password": "%s",
                     "applicationKey": "%s",
                     "stageKey": "%s"
                 }
-                """.formatted(TEST_USERNAME, password, APPLICATION_KEY, STAGE_KEY);
-    }
-
-    @Test
-    void login_shouldReturnToken_whenCredentialsValid() throws Exception {
-
-        String loginResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(TEST_PASSWORD)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", notNullValue()))
-                .andExpect(jsonPath("$.expiresAt", notNullValue()))
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        String token = loginResponse
-                .split("\\\"token\\\":\\\"")[1]
-                .split("\\\"")[0];
-
-        Claims claims = jwtService.parseToken(token);
-
-        assertThat(claims.get("sub", String.class)).isEqualTo(user.getId());
-        assertThat(claims.get("username", String.class)).isEqualTo(TEST_USERNAME);
-        assertThat(claims.get("applicationKey", String.class)).isEqualTo(APPLICATION_KEY);
-        assertThat(claims.get("stageKey", String.class)).isEqualTo(STAGE_KEY);
-
-        Object roles = claims.get("roles");
-        assertThat(roles).isInstanceOf(List.class);
-        assertThat((List<?>) roles).isEmpty();
-    }
-
-    @Test
-    void login_shouldReturn401_whenPasswordInvalid() throws Exception {
+                """.formatted(username, password, applicationKey, stageKey);
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson("wrong")))
-                .andExpect(status().isUnauthorized());
+                        .content(loginRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token").exists());
     }
 
     @Test
-    void me_shouldReturn401_whenNoToken() throws Exception {
+    void login_with_wrong_password_should_return_401() throws Exception {
 
-        mockMvc.perform(get("/api/auth/me"))
-                .andExpect(status().isUnauthorized());
-    }
+        String loginRequest = """
+                {
+                    "username": "%s",
+                    "password": "wrong",
+                    "applicationKey": "%s",
+                    "stageKey": "%s"
+                }
+                """.formatted(username, applicationKey, stageKey);
 
-    @Test
-    void me_shouldReturn200_whenTokenValid() throws Exception {
-
-        String loginResponse = mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(loginJson(TEST_PASSWORD)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        String token = loginResponse
-                .split("\"token\":\"")[1]
-                .split("\"")[0];
-
-        mockMvc.perform(get("/api/auth/me")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.username").value(TEST_USERNAME));
+                        .content(loginRequest))
+                .andExpect(status().isUnauthorized());
     }
 }

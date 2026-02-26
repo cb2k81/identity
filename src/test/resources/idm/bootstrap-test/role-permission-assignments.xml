@@ -5,5 +5,10 @@
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_SCOPE_READ</permissionName>
         </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_READ</permissionName>
+        </assignment>
+
     </items>
 </rolePermissionAssignments>

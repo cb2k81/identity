@@ -13,5 +13,12 @@
             <description>Create roles (from test resources)</description>
             <systemProtected>true</systemProtected>
         </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_READ</name>
+            <description>Read users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
     </items>
 </permissions>

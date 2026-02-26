@@ -33,6 +33,11 @@ public final class IdmManagementAuthorities {
     public static final String IDM_ROLE_PERMISSION_ASSIGN = "IDM_ROLE_PERMISSION_ASSIGN";
     public static final String IDM_ROLE_PERMISSION_UNASSIGN = "IDM_ROLE_PERMISSION_UNASSIGN";
 
+    public static final String IDM_USER_CREATE = "IDM_USER_CREATE";
+    public static final String IDM_USER_READ = "IDM_USER_READ";
+    public static final String IDM_USER_UPDATE = "IDM_USER_UPDATE";
+    public static final String IDM_USER_DELETE = "IDM_USER_DELETE";
+
     public static final String IDM_USER_ROLE_ASSIGN = "IDM_USER_ROLE_ASSIGN";
     public static final String IDM_USER_ROLE_UNASSIGN = "IDM_USER_ROLE_UNASSIGN";
 }

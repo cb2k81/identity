@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
+import java.util.List;
 
 /**
  * Entity service for the UserAccount aggregate.
@@ -46,6 +47,15 @@ public class UserAccountEntityService {
     }
 
     /**
+     * Loads all UserAccount aggregates.
+     *
+     * @return list of UserAccount aggregates
+     */
+    public List<UserAccount> loadAll() {
+        return userAccountRepository.findAll();
+    }
+
+    /**
      * Persists the given UserAccount aggregate.
      *
      * @param userAccount aggregate to persist
@@ -53,5 +63,14 @@ public class UserAccountEntityService {
      */
     public UserAccount save(UserAccount userAccount) {
         return userAccountRepository.save(userAccount);
+    }
+
+    /**
+     * Deletes the given UserAccount aggregate.
+     *
+     * @param userAccount aggregate to delete
+     */
+    public void delete(UserAccount userAccount) {
+        userAccountRepository.delete(userAccount);
     }
 }

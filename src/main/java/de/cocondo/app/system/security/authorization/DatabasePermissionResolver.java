@@ -7,6 +7,7 @@ import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.List;
@@ -28,6 +29,7 @@ public class DatabasePermissionResolver implements PermissionResolver {
     private final RolePermissionAssignmentEntityService rolePermissionAssignmentEntityService;
 
     @Override
+    @Transactional(readOnly = true)
     public List<String> resolveAuthorities(String applicationKey, String stageKey, List<String> roleNames) {
 
         if (applicationKey == null || applicationKey.isBlank()) {

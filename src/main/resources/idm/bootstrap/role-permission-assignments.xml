@@ -49,6 +49,23 @@
 
         <assignment>
             <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_CREATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_DELETE</permissionName>
+        </assignment>
+
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_USER_ROLE_ASSIGN</permissionName>
         </assignment>
         <assignment>

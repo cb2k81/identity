@@ -5,5 +5,10 @@
             <name>IDM_PERMISSION</name>
             <description>IDM Permission Group (from test resources)</description>
         </permissionGroup>
+        <permissionGroup>
+            <name>IDM_USER</name>
+            <description>User management (from test resources)</description>
+        </permissionGroup>
+
     </items>
 </permissionGroups>

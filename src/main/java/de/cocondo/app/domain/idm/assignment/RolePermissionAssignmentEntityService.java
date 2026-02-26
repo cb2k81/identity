@@ -14,6 +14,7 @@ import java.util.Optional;
  */
 @Service
 @RequiredArgsConstructor
+@Transactional(readOnly = true)
 public class RolePermissionAssignmentEntityService {
 
     private final RolePermissionAssignmentRepository repository;
@@ -26,6 +27,7 @@ public class RolePermissionAssignmentEntityService {
         return repository.findAllByRole_Id(roleId);
     }
 
+    @Transactional
     public RolePermissionAssignment save(RolePermissionAssignment assignment) {
         return repository.save(assignment);
     }

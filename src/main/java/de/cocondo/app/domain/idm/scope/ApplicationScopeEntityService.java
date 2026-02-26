@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -24,6 +25,10 @@ public class ApplicationScopeEntityService {
 
     public Optional<ApplicationScope> loadByApplicationKeyAndStageKey(String applicationKey, String stageKey) {
         return repository.findByApplicationKeyAndStageKey(applicationKey, stageKey);
+    }
+
+    public List<ApplicationScope> loadAll() {
+        return repository.findAll();
     }
 
     @Transactional

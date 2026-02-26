@@ -5,16 +5,16 @@ import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntity
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccount;
-import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
-import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.notNullValue;
@@ -25,16 +25,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "idm.bootstrap.enabled=true",
+        "idm.bootstrap.mode=safe",
+        "idm.self.scope.application-key=IDM",
+        "idm.self.scope.stage-key=TEST"
+})
 class IdmAuthorizationIntegrationTest {
-
-    private static final String APPLICATION_KEY = "IDM";
-    private static final String STAGE_KEY = "TEST";
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private UserAccountDomainService userAccountDomainService;
 
     @Autowired
     private UserAccountEntityService userAccountEntityService;
@@ -43,35 +43,18 @@ class IdmAuthorizationIntegrationTest {
     private ApplicationScopeEntityService applicationScopeEntityService;
 
     @Autowired
-    private UserApplicationScopeAssignmentEntityService userScopeAssignmentService;
+    private UserApplicationScopeAssignmentEntityService userApplicationScopeAssignmentEntityService;
 
-    private ApplicationScope scope;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
+
+    private ApplicationScope testScope;
 
     @BeforeEach
-    void setupScope() {
-
-        scope = applicationScopeEntityService
-                .loadByApplicationKeyAndStageKey(APPLICATION_KEY, STAGE_KEY)
-                .orElseGet(() -> {
-                    ApplicationScope s = new ApplicationScope();
-                    s.setApplicationKey(APPLICATION_KEY);
-                    s.setStageKey(STAGE_KEY);
-                    s.setDescription("Test Scope");
-                    return applicationScopeEntityService.save(s);
-                });
-    }
-
-    private void ensureScopeAssignment(UserAccount user) {
-
-        boolean exists = userScopeAssignmentService
-                .existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId());
-
-        if (!exists) {
-            UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
-            assignment.setUserAccount(user);
-            assignment.setApplicationScope(scope);
-            userScopeAssignmentService.save(assignment);
-        }
+    void resolveScope() {
+        testScope = applicationScopeEntityService
+                .loadByApplicationKeyAndStageKey("IDM", "TEST")
+                .orElseThrow(() -> new IllegalStateException("Scope IDM/TEST not bootstrapped"));
     }
 
     private String login(String username, String password) throws Exception {
@@ -80,10 +63,10 @@ class IdmAuthorizationIntegrationTest {
                 {
                     "username": "%s",
                     "password": "%s",
-                    "applicationKey": "%s",
-                    "stageKey": "%s"
+                    "applicationKey": "IDM",
+                    "stageKey": "TEST"
                 }
-                """.formatted(username, password, APPLICATION_KEY, STAGE_KEY);
+                """.formatted(username, password);
 
         String response = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -98,34 +81,49 @@ class IdmAuthorizationIntegrationTest {
     }
 
     @Test
-    void admin_shouldAccessProtectedEndpoint() throws Exception {
+    void noToken_shouldReturn401() throws Exception {
 
-        UserAccount admin = userAccountEntityService
-                .loadByUsername("admin")
-                .orElseThrow();
-
-        ensureScopeAssignment(admin);
-
-        String token = login("admin", "admin");
-
-        mockMvc.perform(get("/api/idm/scopes")
-                        .header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk());
+        mockMvc.perform(get("/api/idm/scopes"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
-    void userWithoutRole_shouldReceive403() throws Exception {
+    void userWithoutScope_shouldReturn401() throws Exception {
 
-        CreateUserRequestDTO dto = new CreateUserRequestDTO();
-        dto.setUsername("plainUser");
-        dto.setPassword("secret");
-        userAccountDomainService.createUser(dto);
+        UserAccount user = new UserAccount();
+        user.setUsername("noScopeUser");
+        user.setPasswordHash(passwordEncoder.encode("secret"));
+        user.activate();
+        userAccountEntityService.save(user);
 
-        UserAccount user = userAccountEntityService
-                .loadByUsername("plainUser")
-                .orElseThrow();
+        String loginJson = """
+                {
+                    "username": "noScopeUser",
+                    "password": "secret",
+                    "applicationKey": "IDM",
+                    "stageKey": "TEST"
+                }
+                """;
 
-        ensureScopeAssignment(user);
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginJson))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void userWithScopeButNoRole_shouldReturn403() throws Exception {
+
+        UserAccount user = new UserAccount();
+        user.setUsername("plainUser");
+        user.setPasswordHash(passwordEncoder.encode("secret"));
+        user.activate();
+        userAccountEntityService.save(user);
+
+        UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
+        assignment.setUserAccount(user);
+        assignment.setApplicationScope(testScope);
+        userApplicationScopeAssignmentEntityService.save(assignment);
 
         String token = login("plainUser", "secret");
 
@@ -135,9 +133,12 @@ class IdmAuthorizationIntegrationTest {
     }
 
     @Test
-    void noToken_shouldReceive401() throws Exception {
+    void admin_shouldAccessProtectedEndpoint() throws Exception {
 
-        mockMvc.perform(get("/api/idm/scopes"))
-                .andExpect(status().isUnauthorized());
+        String token = login("admin", "admin");
+
+        mockMvc.perform(get("/api/idm/scopes")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk());
     }
 }

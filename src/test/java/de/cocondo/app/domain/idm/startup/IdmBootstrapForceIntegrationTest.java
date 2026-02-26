@@ -12,9 +12,7 @@ import de.cocondo.app.domain.idm.role.RoleEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccount;
-import de.cocondo.app.domain.idm.user.UserAccountDomainService;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
-import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
@@ -32,18 +30,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
-        // Start with bootstrap OFF so we can set up "dirty" pre-state
         "idm.bootstrap.enabled=false",
         "idm.bootstrap.base-path=idm/bootstrap-test",
         "idm.bootstrap.admin-xml=admin-user-force.xml",
         "idm.bootstrap.scopes-xml=scopes-force.xml",
-
         "idm.bootstrap.permission-groups-xml=permission-groups-force.xml",
         "idm.bootstrap.permissions-xml=permissions-force.xml",
         "idm.bootstrap.roles-xml=roles-force.xml",
         "idm.bootstrap.role-permission-assignments-xml=role-permission-assignments-force.xml",
         "idm.bootstrap.user-role-assignments-xml=user-role-assignments-force.xml",
-
         "idm.self.application-key=IDM",
         "idm.self.stage-key=TEST"
 })
@@ -60,9 +55,6 @@ class IdmBootstrapForceIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
-
-    @Autowired
-    private UserAccountDomainService userAccountDomainService;
 
     @Autowired
     private UserAccountEntityService userAccountEntityService;
@@ -90,22 +82,27 @@ class IdmBootstrapForceIntegrationTest {
 
     @Test
     void bootstrapForce_shouldUpdateExistingScopeAndAdminPassword() {
-        // --- Pre-state: create scope with wrong description and admin with wrong password
+
+        // --- Pre-state: Scope mit falscher Beschreibung
         ApplicationScope scope = new ApplicationScope();
         scope.setApplicationKey("IDM");
         scope.setStageKey("TEST");
         scope.setDescription("WRONG DESC");
         scopeEntityService.save(scope);
 
-        CreateUserRequestDTO create = new CreateUserRequestDTO();
-        create.setUsername("admin");
-        create.setPassword("wrong");
-        userAccountDomainService.createUser(create);
+        // --- Pre-state: Admin mit falschem Passwort (EntityService!)
+        UserAccount admin = new UserAccount();
+        admin.setUsername("admin");
+        admin.setPasswordHash(passwordEncoder.encode("wrong"));
+        admin.activate();
+        userAccountEntityService.save(admin);
 
-        UserAccount adminBefore = userAccountEntityService.loadByUsername("admin").orElseThrow();
+        UserAccount adminBefore =
+                userAccountEntityService.loadByUsername("admin").orElseThrow();
+
         assertThat(passwordEncoder.matches("wrong", adminBefore.getPasswordHash())).isTrue();
 
-        // Pre-state: create permission group/permission/role with wrong description and not protected
+        // --- Pre-state: AuthZ Daten mit falschen Werten
         PermissionGroup group = new PermissionGroup();
         group.setApplicationScope(scope);
         group.setName("IDM_PERMISSION");
@@ -127,7 +124,7 @@ class IdmBootstrapForceIntegrationTest {
         role.setSystemProtected(false);
         roleEntityService.save(role);
 
-        // --- Enable bootstrap in FORCE mode and run listener manually
+        // --- FORCE aktivieren und Bootstrap manuell ausführen
         bootstrapProperties.setEnabled(true);
         bootstrapProperties.setMode("force");
 
@@ -136,38 +133,52 @@ class IdmBootstrapForceIntegrationTest {
 
         listener.onApplicationEvent(event);
 
-        // --- Verify: updated password and scope description from FORCE xml
-        UserAccount adminAfter = userAccountEntityService.loadByUsername("admin").orElseThrow();
+        // --- Verifikation
+        UserAccount adminAfter =
+                userAccountEntityService.loadByUsername("admin").orElseThrow();
+
         assertThat(passwordEncoder.matches("adminForce", adminAfter.getPasswordHash())).isTrue();
         assertThat(adminAfter.isActive()).isTrue();
 
-        ApplicationScope scopeAfter = scopeEntityService
-                .loadByApplicationKeyAndStageKey("IDM", "TEST")
-                .orElseThrow();
+        ApplicationScope scopeAfter =
+                scopeEntityService.loadByApplicationKeyAndStageKey("IDM", "TEST")
+                        .orElseThrow();
 
-        assertThat(scopeAfter.getDescription()).isEqualTo("IDM Test (FORCE override)");
+        assertThat(scopeAfter.getDescription())
+                .isEqualTo("IDM Test (FORCE override)");
 
         boolean assignmentExists =
-                assignmentRepository.existsByUserAccount_IdAndApplicationScope_Id(adminAfter.getId(), scopeAfter.getId());
+                assignmentRepository.existsByUserAccount_IdAndApplicationScope_Id(
+                        adminAfter.getId(),
+                        scopeAfter.getId()
+                );
 
         assertThat(assignmentExists).isTrue();
 
-        // --- Verify force updates for authz data
-        PermissionGroup groupAfter = permissionGroupEntityService
-                .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_PERMISSION")
-                .orElseThrow();
-        assertThat(groupAfter.getDescription()).isEqualTo("IDM Permission Group (FORCE override)");
+        PermissionGroup groupAfter =
+                permissionGroupEntityService
+                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_PERMISSION")
+                        .orElseThrow();
 
-        Permission permAfter = permissionEntityService
-                .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_SCOPE_READ")
-                .orElseThrow();
-        assertThat(permAfter.getDescription()).isEqualTo("Read scopes (FORCE override)");
+        assertThat(groupAfter.getDescription())
+                .isEqualTo("IDM Permission Group (FORCE override)");
+
+        Permission permAfter =
+                permissionEntityService
+                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_SCOPE_READ")
+                        .orElseThrow();
+
+        assertThat(permAfter.getDescription())
+                .isEqualTo("Read scopes (FORCE override)");
         assertThat(permAfter.isSystemProtected()).isTrue();
 
-        Role roleAfter = roleEntityService
-                .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_ADMIN")
-                .orElseThrow();
-        assertThat(roleAfter.getDescription()).isEqualTo("IDM Admin (FORCE override)");
+        Role roleAfter =
+                roleEntityService
+                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_ADMIN")
+                        .orElseThrow();
+
+        assertThat(roleAfter.getDescription())
+                .isEqualTo("IDM Admin (FORCE override)");
         assertThat(roleAfter.isSystemProtected()).isTrue();
 
         assertThat(rolePermissionAssignmentRepository.count()).isEqualTo(1L);

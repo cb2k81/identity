@@ -1,101 +1,57 @@
-# IDM_ADR_003_Auth
+# IDM – ADR 003: Authentication & Authorization Architecture
 
-## Status
-
-Proposed
+Stand: 2026-02-26
+Status: Accepted (Sprint 4 – aktualisiert gemäß Baseline)
 
 ---
 
-## Kontext
+## 1. Kontext
 
 Der IDM-Service benötigt eine konsistente, sichere und erweiterbare Architektur für Authentication und Authorization.
 
-Die Anforderungen ergeben sich aus den bisherigen Diskussionen:
+Die Anforderungen ergeben sich aus der umgesetzten Architektur in Sprint 3 und 4:
 
-1. Path-Security-Trennung:
+1. Path-Security-Trennung
+2. JWT-basierte Authentication
+3. Rollen- und Permission-basiertes Authorization-Modell
+4. Strikte Schichtenkonformität (DDD)
 
-    * `/public/**` muss anonym erreichbar sein (HTTP 200).
-    * `/api/**` muss Authentication erfordern (HTTP 401 ohne Token).
+Wesentliche Korrektur gegenüber früheren Annahmen:
 
-2. Authentication:
-
-    * Nur definierte User-Accounts dürfen sich authentifizieren.
-    * Login stellt ein signiertes JWT aus.
-    * Ungültige Credentials müssen zu HTTP 401 führen.
-
-3. Authorization:
-
-    * Method-Level-Security mittels `@PreAuthorize("hasAuthority(...)")`.
-    * Permissions müssen zentral definiert sein.
-    * User besitzen Roles.
-    * Roles aggregieren Permissions.
-    * Das JWT muss eine roles-Claim enthalten.
-    * Effektive Permissions werden zur Laufzeit aus den Roles ermittelt.
-
-4. Architektonische Randbedingungen:
-
-    * Keine Business-Logik in Controllern.
-    * Keine Password-Hashing-Logik in Controllern.
-    * Keine JWT-Signing-Logik in Controllern.
-    * Domain-Services definieren Permissions, nicht Controller.
+> JWT enthält **keine Roles-Claim**.
+> Rollen und Permissions werden serverseitig datenbankbasiert aufgelöst.
 
 ---
 
-## Entscheidung
+## 2. Grundprinzip
 
-Authentication und Authorization werden klar getrennt behandelt:
+Authentication und Authorization sind strikt getrennt:
 
 * Authentication = Identitätsprüfung + JWT-Issuance
-* Authorization = rollenbasierte Permission-Auswertung mittels Method Security
+* Authorization = serverseitige Rollen-/Permission-Auswertung mittels Method Security
 
 Das System folgt dem Modell:
 
-Role → Permission → Authority
+User → Roles → Permissions → GrantedAuthority
+
+Die effektiven Authorities entstehen ausschließlich serverseitig.
 
 ---
 
-## Architekturüberblick
+## 3. Path Security
 
-### 1. Authentication-Flow
+Konfiguriert in `HttpSecurityJwtConfig`.
 
-1. Der Client ruft `POST /api/auth/login` auf.
-2. `AuthController` delegiert an `UserAccountDomainService.authenticate(...)`.
-3. Der Domain-Service:
+### Erlaubt ohne Authentication:
 
-    * Lädt den User aus dem Repository.
-    * Prüft das Passwort mittels `PasswordEncoder`.
-    * Wirft bei Fehlern eine `IllegalArgumentException`.
-4. Der Controller mappt die Domain-Exception auf `BadCredentialsException`.
-5. `IdmTokenService` stellt ein JWT aus.
-6. Das JWT enthält:
+* `/public/**`
+* `/api/auth/login`
+* Dokumentationsendpunkte
+* statische Ressourcen
 
-    * `sub` (username oder userId)
-    * `roles` (Array von Role-Identifiern)
-    * `iat`
-    * `exp`
-7. Das Token wird an den Client zurückgegeben.
+### Authentication erforderlich:
 
-Authentication-Fehler werden behandelt durch:
-
-* `RestAuthenticationEntryPoint` (401)
-* `GlobalExceptionHandler` für `AuthenticationException`
-
----
-
-### 2. Path Security
-
-Konfiguriert in `HttpSecurityJwtConfig`:
-
-* `permitAll()` für:
-
-    * `/api/auth/login`
-    * `/public/**`
-    * Dokumentationsendpunkte
-    * statische Ressourcen
-
-* `authenticated()` für:
-
-    * `/api/**`
+* `/api/**`
 
 Resultierendes Verhalten:
 
@@ -108,202 +64,180 @@ Resultierendes Verhalten:
 
 ---
 
-### 3. Authorization-Modell
+## 4. Authentication-Architektur
 
-Authorization ist rollenbasiert, wird jedoch über Permissions technisch durchgesetzt.
+### 4.1 Login-Flow
 
-#### 3.1 Permissions
+1. Client ruft `POST /api/auth/login` auf.
+2. Controller delegiert an einen Authentication-Service.
+3. Der Service:
 
-Permissions werden als stabile Authority-Strings definiert.
+   * Lädt den User aus dem Repository.
+   * Prüft Passwort mittels `PasswordEncoder`.
+   * Prüft User-State.
+4. Bei Fehler → `AuthenticationException`.
+5. `IdmTokenService` erstellt JWT.
+6. Token wird zurückgegeben.
 
-Beispiel:
+### 4.2 JWT-Inhalt
 
-```
-IDM_USER_READ
-IDM_USER_CREATE
-IDM_USER_DELETE
-```
+Das Token enthält ausschließlich minimale Identitätsinformationen:
 
-Permissions werden in Domain-Services verwendet mittels:
+* `sub`
+* `username`
+* `iat`
+* `exp`
 
-```
-@PreAuthorize("hasAuthority(IdmPermissions.USER_READ)")
-```
+Nicht enthalten:
 
-Permissions sind zentral in der Domain-Schicht definiert.
-
----
-
-#### 3.2 Roles
-
-Roles sind übergeordnete Gruppierungen von Permissions.
-
-Beispiel:
-
-* `IDM_ADMIN`
-* `IDM_USER_MANAGER`
-
-Role-Definitionen mappen Roles auf Permissions.
-
-Beispiel-Mapping:
-
-```
-IDM_ADMIN → { alle IDM_* Permissions }
-IDM_USER_MANAGER → { IDM_USER_READ, IDM_USER_CREATE }
-```
-
-Die Role-Definitionen sind deterministisch und initial code-basiert implementiert.
-
----
-
-#### 3.3 Role → Permission Resolution
-
-Ein `RolePermissionResolver` ermittelt die effektiven Authorities.
-
-Input:
-
-* Roles aus der JWT-Claim
-
-Output:
-
-* Menge von Permission-Authority-Strings
-
-Der Resolver:
-
-* Liest die roles-Claim aus dem JWT
-* Schlägt die Role-Definitionen nach
-* Aggregiert die Permissions
-* Liefert die daraus resultierenden Granted Authorities zurück
-
----
-
-### 4. JWT-Integration
-
-Das JWT enthält ausschließlich Roles, keine Permissions.
+* Rollen
+* Permissions
+* Scope-Zuordnungen
 
 Begründung:
 
-* Kompakteres Token
-* Zentrale Permission-Policy
-* Änderungen an Permissions erfordern keine Token-Strukturänderung
+* Rollen können sich während Token-Laufzeit ändern.
+* Keine Stale-Authorization.
+* Token bleibt kompakt.
+* Autorisierung ist zentral steuerbar.
 
-Zur Laufzeit eines Requests:
-
-1. `JwtAuthenticationFilter` validiert das Token.
-2. Extrahiert:
-
-    * subject
-    * roles-Claim
-3. Ruft `RolePermissionResolver` auf.
-4. Erstellt ein `Authentication`-Objekt mit:
-
-    * principal
-    * aufgelösten Permission-Authorities
-5. Setzt den `SecurityContext`.
-
-Die Method Security von Spring Security wertet anschließend die Authorities aus.
+Diese Entscheidung ist verbindlich und konsistent mit ADR-004.
 
 ---
 
-### 5. Method Security
+## 5. Authorization-Modell
+
+Authorization ist datenbankbasiert und rollengetrieben.
+
+### 5.1 Persistenzmodell
+
+* Roles sind ApplicationScope-gebunden.
+* Permissions sind ApplicationScope-gebunden.
+* RolePermissionAssignments definieren Role → Permission.
+* UserRoleAssignments definieren User → Role.
+
+Alle Zuordnungen sind Bestandteil des Bootstrap-Modells (ADR-006).
+
+---
+
+### 5.2 Runtime-Resolution
+
+Bei jedem Request mit gültigem JWT:
+
+1. `JwtAuthenticationFilter` validiert das Token.
+2. Subject wird extrahiert.
+3. User wird aus Datenbank geladen.
+4. Rollen des Users werden geladen.
+5. Permissions der Rollen werden geladen.
+6. Permissions werden in `GrantedAuthority` gemappt.
+7. `Authentication` wird im `SecurityContext` gesetzt.
+
+Es erfolgt **keine Auswertung von Rollen aus dem Token**.
+
+---
+
+## 6. Method Security
 
 Method Security ist global aktiviert.
 
-Permissions werden auf Service-Ebene durchgesetzt, nicht auf Controller-Ebene.
+Permissions werden ausschließlich auf Service-Ebene geprüft.
 
 Beispiel:
 
 ```
-@PreAuthorize("hasAuthority(IdmPermissions.USER_READ)")
-public UserDto getUser(...)
+@PreAuthorize("hasAuthority('IDM_USER_READ')")
 ```
 
-Falls die Authority fehlt:
+Bei fehlender Authority:
 
 * `AccessDeniedException`
-* Behandlung durch `RestAccessDeniedHandler`
 * HTTP 403
 
+Controller enthalten keine Business- oder Security-Logik.
+
 ---
 
-## Teststrategie
+## 7. Teststrategie
 
-### 1. Authentication-Tests
+### 7.1 Authentication-Tests
 
 * Gültiger Login → 200 + Token
-* Ungültiges Passwort → 401
-* `/api/auth/me` ohne Token → 401
-* `/api/auth/me` mit Token → 200
+* Ungültige Credentials → 401
+* `/api/**` ohne Token → 401
 
-Dies sind Integration-Tests mit:
+Integrationstests mit:
 
-* echtem `UserAccount`
-* H2-Datenbank
-* echtem `PasswordEncoder`
+* echter H2-Datenbank
+* echtem PasswordEncoder
 * echter JWT-Erzeugung
 
-Es wird kein Mocking von `UserAccount` verwendet.
+Kein Mocking von UserAccount.
 
 ---
 
-### 2. Path-Security-Tests
+### 7.2 Path-Security-Tests
 
-Eine dedizierte Integration-Testklasse verifiziert:
+Separate Integration-Testklasse verifiziert:
 
-* Kein Token → `/public/**` = 200
-* Kein Token → `/api/**` = 401
-* Gültiges Token → `/public/**` = 200
-* Gültiges Token → `/api/**` = 200
-
----
-
-### 3. Authorization-Tests (zukünftiger Schritt)
-
-Nach Implementierung der Roles:
-
-* Token mit unzureichender Role → 403
-* Token mit ausreichender Role → 200
-* Test auf Vorhandensein der roles-Claim im JWT
-* Test der Resolver-Korrektheit
-
-Authorization-Tests sind strikt von Authentication-Tests getrennt.
+* `/public/**` ohne Token → 200
+* `/api/**` ohne Token → 401
+* `/api/**` mit Token → 200
 
 ---
 
-## Konsequenzen
+### 7.3 Authorization-Tests
+
+* User ohne Role → 403
+* User mit Role → 200
+* Prüfung effektiver Permission-Auflösung
+
+Authorization-Tests sind strikt getrennt von Authentication-Tests.
+
+---
+
+## 8. Architektonische Leitplanken
+
+* Keine Business-Logik in Controllern.
+* Keine JWT-Signing-Logik in Controllern.
+* Keine Password-Hashing-Logik in Controllern.
+* Keine Repository-Nutzung in Security-Filtern.
+* Rollen und Permissions sind Domain-Objekte, keine Security-Konstanten.
+
+---
+
+## 9. Konsequenzen
 
 ### Positive Effekte
 
-* Klare Trennung zwischen Authentication und Authorization
-* Domain-getriebenes Permission-Modell
-* Kompatibel mit anderen IDM-integrierten Anwendungen
-* Deterministische Role → Permission Resolution
-* Isoliert testbar
+* Klare Trennung Authentication vs. Authorization
+* Kein Rollen-Drift durch Token-Caching
+* Vollständig serverseitige Autorisierung
+* Stage-isoliertes Rollenmodell
+* Testbar und deterministisch
 
 ### Trade-offs
 
-* Zentrale Pflege der Role-Definitionen erforderlich
-* Änderungen an Permissions erfordern Deployment (bei code-basierter Definition)
-* Token-TTL muss kontrolliert werden, wenn Role-Änderungen sofort wirksam sein sollen
+* Jede Anfrage benötigt Datenbankzugriffe zur Rollenauflösung
+* Kein rein stateless Role-Claim-Modell
 
 ---
 
-## Zukünftige Erweiterungen
+## 10. Zukunft
 
+* Caching von Permission-Resolution
 * Token-Versionierung pro User
 * Refresh-Token-Unterstützung
-* Datenbankbasierte Role-Permission-Konfiguration
-* Multi-Tenant-Role-Isolation
+* Record-Level-Permissions
+* Multi-Tenant-Isolation
 
 ---
 
 ## Fazit
 
-Authentication und Authorization im IDM werden umgesetzt mittels:
+Authentication im IDM ist JWT-basiert und minimalistisch.
 
-* Stateless JWT Authentication
-* rollenbasierter Permission-Aggregation
-* authority-basierter Method Security
-* strikter Path-Trennung zwischen `/public` und `/api`
+Authorization erfolgt vollständig serverseitig über das persistierte Rollen- und Permission-Modell.
 
-Authentication wird vollständig abgeschlossen, bevor Method-Level-Authorization durchgesetzt wird.
+JWT enthält bewusst keine Rollen oder Permissions.
+
+Die Architektur ist konsistent mit ADR-004 (JWT Hardening) und ADR-006 (Bootstrap).
