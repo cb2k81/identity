@@ -26,6 +26,10 @@ public class PermissionGroupEntityService {
         return permissionGroupRepository.findByApplicationScope_IdAndName(applicationScopeId, name);
     }
 
+    public boolean existsByApplicationScopeId(String applicationScopeId) {
+        return permissionGroupRepository.existsByApplicationScope_Id(applicationScopeId);
+    }
+
     @Transactional
     public PermissionGroup save(PermissionGroup group) {
         return permissionGroupRepository.save(group);

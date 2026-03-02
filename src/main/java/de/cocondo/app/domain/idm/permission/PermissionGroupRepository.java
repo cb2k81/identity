@@ -15,4 +15,6 @@ import java.util.Optional;
 public interface PermissionGroupRepository extends JpaRepository<PermissionGroup, String> {
 
     Optional<PermissionGroup> findByApplicationScope_IdAndName(String applicationScopeId, String name);
+
+    boolean existsByApplicationScope_Id(String applicationScopeId);
 }

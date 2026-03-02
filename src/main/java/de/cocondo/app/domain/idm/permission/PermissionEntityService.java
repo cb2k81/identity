@@ -31,6 +31,10 @@ public class PermissionEntityService {
         return permissionRepository.findAllByApplicationScope_Id(applicationScopeId);
     }
 
+    public boolean existsByApplicationScopeId(String applicationScopeId) {
+        return permissionRepository.existsByApplicationScope_Id(applicationScopeId);
+    }
+
     @Transactional
     public Permission save(Permission permission) {
         return permissionRepository.save(permission);

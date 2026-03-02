@@ -18,4 +18,6 @@ public interface PermissionRepository extends JpaRepository<Permission, String> 
     Optional<Permission> findByApplicationScope_IdAndName(String applicationScopeId, String name);
 
     List<Permission> findAllByApplicationScope_Id(String applicationScopeId);
+
+    boolean existsByApplicationScope_Id(String applicationScopeId);
 }

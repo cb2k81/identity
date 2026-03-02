@@ -12,8 +12,7 @@ import java.util.Optional;
  * - No business logic
  * - No security logic
  */
-public interface UserApplicationScopeAssignmentRepository
-        extends JpaRepository<UserApplicationScopeAssignment, String> {
+public interface UserApplicationScopeAssignmentRepository extends JpaRepository<UserApplicationScopeAssignment, String> {
 
     Optional<UserApplicationScopeAssignment> findByUserAccount_IdAndApplicationScope_Id(
             String userAccountId,
@@ -21,4 +20,6 @@ public interface UserApplicationScopeAssignmentRepository
     );
 
     boolean existsByUserAccount_IdAndApplicationScope_Id(String userAccountId, String applicationScopeId);
+
+    boolean existsByApplicationScope_Id(String applicationScopeId);
 }

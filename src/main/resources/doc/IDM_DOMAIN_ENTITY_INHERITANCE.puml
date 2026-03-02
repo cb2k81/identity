@@ -1,0 +1,49 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' =========================
+' Basis / Technical Layer
+' =========================
+
+interface Identifyable
+interface Auditable
+interface Taggable
+
+abstract class DomainEntity <<abstract>> {
+}
+
+class KeyValuePair <<entity>>
+class NumberSequence <<entity>>
+
+Identifyable <|.. DomainEntity
+Auditable   <|.. DomainEntity
+Taggable    <|.. DomainEntity
+
+' DomainEntity <-> KeyValuePair (technische Metadaten)
+DomainEntity "1" o-- "0..*" KeyValuePair : keyValuePairs
+
+' =========================
+' IDM Domain Layer
+' =========================
+
+class UserAccount <<AggregateRoot>>
+class ApplicationScope <<AggregateRoot>>
+class Role <<AggregateRoot>>
+class PermissionGroup <<AggregateRoot>>
+class Permission <<AggregateRoot>>
+
+class UserApplicationScopeAssignment <<entity>>
+class UserRoleAssignment <<entity>>
+class RolePermissionAssignment <<entity>>
+
+DomainEntity <|-- UserAccount
+DomainEntity <|-- ApplicationScope
+DomainEntity <|-- Role
+DomainEntity <|-- PermissionGroup
+DomainEntity <|-- Permission
+
+DomainEntity <|-- UserApplicationScopeAssignment
+DomainEntity <|-- UserRoleAssignment
+DomainEntity <|-- RolePermissionAssignment
+
+@enduml

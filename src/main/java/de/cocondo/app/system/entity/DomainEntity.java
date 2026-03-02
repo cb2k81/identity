@@ -19,7 +19,8 @@ public abstract class DomainEntity implements Identifyable, Auditable, Taggable 
     protected String id;
 
     @Version
-    protected Long persistenceVersion;
+    @Column(name = "persistence_version", nullable = false)
+    private Long persistenceVersion = 0L;
 
     @ElementCollection(fetch = FetchType.EAGER)
     protected Set<String> tags = new HashSet<>();

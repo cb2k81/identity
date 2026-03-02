@@ -29,6 +29,10 @@ public class UserApplicationScopeAssignmentEntityService {
         return repository.existsByUserAccount_IdAndApplicationScope_Id(userAccountId, applicationScopeId);
     }
 
+    public boolean existsByApplicationScopeId(String applicationScopeId) {
+        return repository.existsByApplicationScope_Id(applicationScopeId);
+    }
+
     @Transactional
     public UserApplicationScopeAssignment save(UserApplicationScopeAssignment assignment) {
         return repository.save(assignment);

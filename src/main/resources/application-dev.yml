@@ -1,9 +1,6 @@
 # application-dev.yml - IDM Development profile configuration
 
 spring:
-  profiles:
-    include: dev
-
   jpa:
     hibernate:
       ddl-auto: create

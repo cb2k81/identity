@@ -17,6 +17,7 @@ import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.NoHandlerFoundException;
+import org.springframework.web.servlet.resource.NoResourceFoundException;
 
 import java.time.LocalDateTime;
 import java.util.Arrays;
@@ -35,6 +36,21 @@ public class GlobalExceptionHandler {
         this.errorMessageProvider = errorMessageProvider;
     }
 
+    /**
+     * Spring MVC (insb. Spring 6.1+) kann bei nicht gemappten Pfaden über den ResourceHttpRequestHandler
+     * eine NoResourceFoundException werfen. Das ist fachlich ein 404.
+     */
+    @ExceptionHandler(NoResourceFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    @ResponseBody
+    public ResponseEntity<ErrorResponse> handleNoResourceFoundException(HttpServletRequest request, NoResourceFoundException ex) {
+        return logAndCreateErrorResponse(request, ex, HttpStatus.NOT_FOUND);
+    }
+
+    /**
+     * NoHandlerFoundException wird nur geworfen, wenn spring.mvc.throw-exception-if-no-handler-found=true
+     * konfiguriert ist (und je nach Setup der Resource-Handler nicht greift).
+     */
     @ExceptionHandler(NoHandlerFoundException.class)
     @ResponseStatus(HttpStatus.NOT_FOUND)
     @ResponseBody

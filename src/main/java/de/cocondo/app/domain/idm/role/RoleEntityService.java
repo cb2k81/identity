@@ -22,6 +22,10 @@ public class RoleEntityService {
         return roleRepository.findByApplicationScope_IdAndName(applicationScopeId, name);
     }
 
+    public boolean existsByApplicationScopeId(String applicationScopeId) {
+        return roleRepository.existsByApplicationScope_Id(applicationScopeId);
+    }
+
     @Transactional
     public Role save(Role role) {
         Objects.requireNonNull(role, "role must not be null");

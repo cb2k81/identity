@@ -15,10 +15,17 @@ import de.cocondo.app.domain.idm.role.DeleteRoleHandler;
 import de.cocondo.app.domain.idm.role.dto.CreateRoleRequestDTO;
 import de.cocondo.app.domain.idm.role.dto.RoleDTO;
 import de.cocondo.app.domain.idm.scope.CreateApplicationScopeHandler;
+import de.cocondo.app.domain.idm.scope.DeleteApplicationScopeHandler;
+import de.cocondo.app.domain.idm.scope.ListApplicationScopesHandler;
+import de.cocondo.app.domain.idm.scope.ReadApplicationScopeHandler;
+import de.cocondo.app.domain.idm.scope.UpdateApplicationScopeHandler;
 import de.cocondo.app.domain.idm.scope.dto.ApplicationScopeDTO;
 import de.cocondo.app.domain.idm.scope.dto.CreateApplicationScopeRequestDTO;
+import de.cocondo.app.domain.idm.scope.dto.UpdateApplicationScopeRequestDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.util.List;
 
 /**
  * Facade for IDM permission and role management.
@@ -31,6 +38,11 @@ import org.springframework.stereotype.Service;
 public class PermissionManagementDomainService {
 
     private final CreateApplicationScopeHandler createApplicationScopeHandler;
+    private final ListApplicationScopesHandler listApplicationScopesHandler;
+    private final ReadApplicationScopeHandler readApplicationScopeHandler;
+    private final UpdateApplicationScopeHandler updateApplicationScopeHandler;
+    private final DeleteApplicationScopeHandler deleteApplicationScopeHandler;
+
     private final CreatePermissionGroupHandler createPermissionGroupHandler;
     private final CreatePermissionHandler createPermissionHandler;
     private final CreateRoleHandler createRoleHandler;
@@ -43,6 +55,22 @@ public class PermissionManagementDomainService {
 
     public ApplicationScopeDTO createApplicationScope(CreateApplicationScopeRequestDTO request) {
         return createApplicationScopeHandler.handle(request);
+    }
+
+    public List<ApplicationScopeDTO> listApplicationScopes() {
+        return listApplicationScopesHandler.handle();
+    }
+
+    public ApplicationScopeDTO readApplicationScope(String scopeId) {
+        return readApplicationScopeHandler.handle(scopeId);
+    }
+
+    public ApplicationScopeDTO updateApplicationScope(String scopeId, UpdateApplicationScopeRequestDTO request) {
+        return updateApplicationScopeHandler.handle(scopeId, request);
+    }
+
+    public void deleteApplicationScope(String scopeId) {
+        deleteApplicationScopeHandler.handle(scopeId);
     }
 
     public PermissionGroupDTO createPermissionGroup(CreatePermissionGroupRequestDTO request) {

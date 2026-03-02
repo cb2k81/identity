@@ -1,0 +1,133 @@
+@startuml
+skinparam classAttributeIconSize 0
+
+' =========================
+' Technical (optional, ohne Vererbung)
+' =========================
+class DomainEntity <<technical>> {
+  +id : String
+  +persistenceVersion : Long
+  +tags : SetOfString
+  +createdBy : String
+  +createdAt : LocalDateTime
+  +lastModifiedBy : String
+  +lastModifiedAt : LocalDateTime
+}
+
+class KeyValuePair <<technical>> {
+  +id : Long
+  +key : String
+  +value : String
+}
+
+class NumberSequence <<technical>> {
+  +sequenceName : String
+  +startNumber : BigInteger
+  +endNumber : BigInteger
+  +currentNumber : BigInteger
+}
+
+' Metadaten-Beziehung (optional – technisch, aber reale Entity-Relation)
+DomainEntity "1" o-- "0..*" KeyValuePair : keyValuePairs
+KeyValuePair "0..*" --> "1" DomainEntity : domainEntity
+
+
+' =========================
+' IDM Domain
+' =========================
+enum UserAccountState {
+  ACTIVE
+  EXPIRED
+  LOCKED_TEMPORARY
+  LOCKED_PERMANENT
+  DISABLED
+}
+
+class UserAccount {
+  +username : String
+  +passwordHash : String
+  +state : UserAccountState
+}
+
+class ApplicationScope {
+  +applicationKey : String
+  +stageKey : String
+  +description : String
+}
+
+class Role {
+  +name : String
+  +description : String
+  +systemProtected : boolean
+}
+
+class PermissionGroup {
+  +name : String
+  +description : String
+}
+
+class Permission {
+  +name : String
+  +description : String
+  +systemProtected : boolean
+}
+
+class UserApplicationScopeAssignment
+class UserRoleAssignment
+class RolePermissionAssignment
+
+' =========================
+' Fachliche Beziehungen (ohne Vererbung!)
+' =========================
+
+PermissionGroup "0..*" --> "1" ApplicationScope : applicationScope
+Permission      "0..*" --> "1" ApplicationScope : applicationScope
+Role            "0..*" --> "1" ApplicationScope : applicationScope
+
+Permission "0..*" --> "1" PermissionGroup : permissionGroup
+
+UserApplicationScopeAssignment "0..*" --> "1" UserAccount : userAccount
+UserApplicationScopeAssignment "0..*" --> "1" ApplicationScope : applicationScope
+
+UserRoleAssignment "0..*" --> "1" UserAccount : userAccount
+UserRoleAssignment "0..*" --> "1" Role : role
+
+RolePermissionAssignment "0..*" --> "1" Role : role
+RolePermissionAssignment "0..*" --> "1" Permission : permission
+
+' =========================
+' Constraints
+' =========================
+note right of UserAccount
+  username UNIQUE
+end note
+
+note bottom of ApplicationScope
+  UNIQUE(applicationKey, stageKey)
+end note
+
+note right of PermissionGroup
+  UNIQUE(applicationScope, name)
+end note
+
+note right of Permission
+  UNIQUE(applicationScope, name)
+end note
+
+note left of Role
+  UNIQUE(applicationScope, name)
+end note
+
+note left of UserApplicationScopeAssignment
+  UNIQUE(userAccount, applicationScope)
+end note
+
+note left of UserRoleAssignment
+  UNIQUE(userAccount, role)
+end note
+
+note right of RolePermissionAssignment
+  UNIQUE(role, permission)
+end note
+
+@enduml

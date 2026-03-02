@@ -1,6 +1,5 @@
 package de.cocondo.app.domain.idm.scope;
 
-import de.cocondo.app.config.IdmManagementAuthorities;
 import de.cocondo.app.domain.idm.scope.dto.ApplicationScopeDTO;
 import de.cocondo.app.domain.idm.scope.dto.UpdateApplicationScopeRequestDTO;
 import lombok.RequiredArgsConstructor;
@@ -8,6 +7,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import static de.cocondo.app.config.IdmManagementAuthorities.IDM_SCOPE_UPDATE;
 
 @Service
 @RequiredArgsConstructor
@@ -17,7 +18,7 @@ public class UpdateApplicationScopeHandler {
 
     private final ApplicationScopeEntityService scopeEntityService;
 
-    @PreAuthorize("hasAuthority('" + IdmManagementAuthorities.IDM_SCOPE_UPDATE + "')")
+    @PreAuthorize("hasAuthority('" + IDM_SCOPE_UPDATE + "')")
     public ApplicationScopeDTO handle(String scopeId, UpdateApplicationScopeRequestDTO request) {
 
         if (scopeId == null || scopeId.isBlank()) {
@@ -31,7 +32,7 @@ public class UpdateApplicationScopeHandler {
 
         ApplicationScope saved = scopeEntityService.save(scope);
 
-        log.info("ApplicationScope updated: id={}", saved.getId());
+        log.info("ApplicationScope updated: scopeId={}", saved.getId());
 
         ApplicationScopeDTO dto = new ApplicationScopeDTO();
         dto.setId(saved.getId());

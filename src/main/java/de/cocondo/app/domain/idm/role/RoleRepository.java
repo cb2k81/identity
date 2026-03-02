@@ -15,4 +15,6 @@ import java.util.Optional;
 public interface RoleRepository extends JpaRepository<Role, String> {
 
     Optional<Role> findByApplicationScope_IdAndName(String applicationScopeId, String name);
+
+    boolean existsByApplicationScope_Id(String applicationScopeId);
 }
