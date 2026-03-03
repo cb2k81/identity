@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @EntityListeners({DomainEntityListener.class, AuditingEntityListener.class})
@@ -35,6 +36,15 @@ public abstract class DomainEntity implements Identifyable, Auditable, Taggable 
             fetch = FetchType.EAGER,
             orphanRemoval = true)
     protected Set<KeyValuePair> keyValuePairs = new HashSet<>();
+
+
+    // --------------------------------------------------
+    // Konstruktor – ID wird hier deterministisch erzeugt
+    // --------------------------------------------------
+
+    protected DomainEntity() {
+        this.id = UUID.randomUUID().toString();
+    }
 
     // ----------------------------------------
     // equals / hashCode (JPA-safe, FINAL)
