@@ -17,10 +17,11 @@ public class DefaultWebConfig implements WebMvcConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWebConfig.class);
 
-    @Value("${your.property.api-docs:/api-docs}")
+    // align with springdoc configuration (see EndpointPrinter)
+    @Value("${springdoc.api-docs.path:/v3/api-docs}")
     private String apiDocsPath;
 
-    @Value("${your.property.swagger-ui:/swagger-ui}")
+    @Value("${springdoc.swagger-ui.path:/swagger-ui}")
     private String swaggerUiPath;
 
     @Value("${cors.allowed-origins:null}")
@@ -38,8 +39,15 @@ public class DefaultWebConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/")
                 .excludePathPatterns("/favicon.ico")
                 .excludePathPatterns("/index.html")
+
+                // springdoc / swagger
                 .excludePathPatterns(apiDocsPath + "/**")
                 .excludePathPatterns(swaggerUiPath + "/**")
+                .excludePathPatterns("/swagger-ui.html")
+
+                // compatibility hardening (in case apiDocsPath differs somewhere)
+                .excludePathPatterns("/v3/api-docs/**")
+
                 .excludePathPatterns("/auth/**")
                 .excludePathPatterns("/api/**")
                 .excludePathPatterns("/public/**")
