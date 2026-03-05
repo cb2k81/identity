@@ -36,6 +36,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class UserRoleAssignmentIntegrationTest {
 
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
 
@@ -108,7 +110,7 @@ class UserRoleAssignmentIntegrationTest {
         req.setApplicationKey("IDM");
         req.setStageKey("TEST");
 
-        String body = mvc.perform(post("/api/auth/login")
+        String body = mvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())

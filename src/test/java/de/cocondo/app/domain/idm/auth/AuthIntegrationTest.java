@@ -27,6 +27,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @ActiveProfiles("test")
 class AuthIntegrationTest {
 
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -59,21 +61,18 @@ class AuthIntegrationTest {
         applicationKey = "IDM-" + UUID.randomUUID();
         stageKey = "TEST-" + UUID.randomUUID();
 
-        // Scope anlegen
         ApplicationScope scope = new ApplicationScope();
         scope.setApplicationKey(applicationKey);
         scope.setStageKey(stageKey);
         scope.setDescription("Integration Test Scope");
         scope = applicationScopeEntityService.save(scope);
 
-        // User anlegen (EntityService, nicht DomainService!)
         UserAccount user = new UserAccount();
         user.setUsername(username);
         user.setPasswordHash(passwordEncoder.encode(password));
         user.activate();
         user = userAccountEntityService.save(user);
 
-        // Scope-Zuordnung
         UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
         assignment.setUserAccount(user);
         assignment.setApplicationScope(scope);
@@ -92,7 +91,7 @@ class AuthIntegrationTest {
                 }
                 """.formatted(username, password, applicationKey, stageKey);
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginRequest))
                 .andExpect(status().isOk())
@@ -111,7 +110,7 @@ class AuthIntegrationTest {
                 }
                 """.formatted(username, applicationKey, stageKey);
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginRequest))
                 .andExpect(status().isUnauthorized());

@@ -17,65 +17,62 @@ public class DefaultWebConfig implements WebMvcConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWebConfig.class);
 
-    // align with springdoc configuration (see EndpointPrinter)
-    @Value("${springdoc.api-docs.path:/v3/api-docs}")
+    @Value("${your.property.api-docs:/api-docs}")
     private String apiDocsPath;
 
-    @Value("${springdoc.swagger-ui.path:/swagger-ui}")
+    @Value("${your.property.swagger-ui:/swagger-ui}")
     private String swaggerUiPath;
 
     @Value("${cors.allowed-origins:null}")
-    private String[] corsAllowedOrigins;
-
-    @Override
-    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
-        configurer.defaultContentType(MediaType.APPLICATION_JSON);
-        logger.info("Configuring default content negotiation to MediaType.APPLICATION_JSON");
-    }
+    private String[] allowedOrigins;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        registry.addInterceptor(new DefaultFallbackInterceptor())
-                .excludePathPatterns("/")
-                .excludePathPatterns("/favicon.ico")
-                .excludePathPatterns("/index.html")
 
-                // springdoc / swagger
-                .excludePathPatterns(apiDocsPath + "/**")
-                .excludePathPatterns(swaggerUiPath + "/**")
+        registry.addInterceptor(new DefaultFallbackInterceptor())
+                .addPathPatterns("/**")
+
+                // public authentication endpoints
+                .excludePathPatterns("/auth/**")
+
+                // secured API endpoints
+                .excludePathPatterns("/api/**")
+
+                // swagger / openapi
+                .excludePathPatterns("/v3/api-docs/**")
+                .excludePathPatterns("/swagger-ui/**")
                 .excludePathPatterns("/swagger-ui.html")
 
-                // compatibility hardening (in case apiDocsPath differs somewhere)
-                .excludePathPatterns("/v3/api-docs/**")
+                // actuator
+                .excludePathPatterns("/actuator/**")
 
-                .excludePathPatterns("/auth/**")
-                .excludePathPatterns("/api/**")
-                .excludePathPatterns("/public/**")
+                // static
+                .excludePathPatterns("/error")
+                .excludePathPatterns("/favicon.ico")
+                .excludePathPatterns("/index.html")
                 .excludePathPatterns("/static/**");
-
-        logger.info("Registering DefaultFallbackInterceptor bean");
     }
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**")
-                .allowedOrigins(corsAllowedOrigins)
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
 
-        logger.info("Allowed cors origins: ");
-        for (String origin : corsAllowedOrigins) {
-            logger.info("- " + origin);
+        if (allowedOrigins != null && allowedOrigins.length > 0) {
+            registry.addMapping("/**")
+                    .allowedOrigins(allowedOrigins)
+                    .allowedMethods("*")
+                    .allowedHeaders("*");
         }
     }
 
     @Override
-    public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("/static/**")
-                .addResourceLocations("classpath:/static/")
-                .setCachePeriod(3600);
+    public void configureContentNegotiation(ContentNegotiationConfigurer configurer) {
 
-        logger.info("Static resources mapped to classpath:/static/");
+        configurer.defaultContentType(MediaType.APPLICATION_JSON);
+    }
+
+    @Override
+    public void addResourceHandlers(ResourceHandlerRegistry registry) {
+
+        logger.debug("Configuring static resource handlers");
     }
 }

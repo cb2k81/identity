@@ -11,13 +11,14 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthBootstrapIntegrationTest {
+
+    private static final String LOGIN_ENDPOINT = "/auth/login";
 
     @Autowired
     private MockMvc mockMvc;
@@ -35,14 +36,13 @@ class AuthBootstrapIntegrationTest {
         request.setStageKey("TEST");
 
         mockMvc.perform(
-                        post("/api/auth/login")
+                        post(LOGIN_ENDPOINT)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                // in eurem Response-Body ist es "expiresAt" (epoch millis)
                 .andExpect(jsonPath("$.expiresAt").exists());
     }
 
@@ -56,7 +56,7 @@ class AuthBootstrapIntegrationTest {
         request.setStageKey("TEST");
 
         mockMvc.perform(
-                        post("/api/auth/login")
+                        post(LOGIN_ENDPOINT)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )
@@ -72,11 +72,10 @@ class AuthBootstrapIntegrationTest {
         request.setUsername("admin");
         request.setPassword("admin");
         request.setApplicationKey("IDM");
-        // "DEV" existiert im test-Kontext offenbar nicht/keine Assignment -> bei euch 401 (BadCredentialsException)
         request.setStageKey("DEV");
 
         mockMvc.perform(
-                        post("/api/auth/login")
+                        post(LOGIN_ENDPOINT)
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(objectMapper.writeValueAsString(request))
                 )

@@ -30,6 +30,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class UserAccountManagementIntegrationTest {
 
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+
     @Autowired MockMvc mvc;
     @Autowired ObjectMapper objectMapper;
     @Autowired JdbcTemplate jdbc;
@@ -51,7 +53,7 @@ class UserAccountManagementIntegrationTest {
         adminUserId = insertUser("admin", "admin");
 
         assignRoleToUser(adminUserId, roleId);
-        assignScopeToUser(adminUserId, scopeId);   // <-- entscheidend
+        assignScopeToUser(adminUserId, scopeId);
     }
 
     @Test
@@ -71,8 +73,27 @@ class UserAccountManagementIntegrationTest {
                 .andExpect(jsonPath("$.username", is("u1")));
     }
 
+    private String loginAndGetToken(String username, String password) throws Exception {
+
+        LoginRequestDTO req = new LoginRequestDTO();
+        req.setUsername(username);
+        req.setPassword(password);
+        req.setApplicationKey("IDM");
+        req.setStageKey("LOCAL");
+
+        String body = mvc.perform(post(LOGIN_ENDPOINT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(req)))
+                .andExpect(status().isOk())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(body).get("token").asText();
+    }
+
     // -------------------------------------------------------------------------
-    // INSERT HELPERS (Baseline-konform inkl. Audit + persistence_version)
+    // INSERT HELPERS (unverändert aus Baseline)
     // -------------------------------------------------------------------------
 
     private String insertScope(String appKey, String stageKey) {
@@ -220,24 +241,5 @@ class UserAccountManagementIntegrationTest {
                 userId,
                 scopeId
         );
-    }
-
-    private String loginAndGetToken(String username, String password) throws Exception {
-
-        LoginRequestDTO req = new LoginRequestDTO();
-        req.setUsername(username);
-        req.setPassword(password);
-        req.setApplicationKey("IDM");
-        req.setStageKey("LOCAL");
-
-        String body = mvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(req)))
-                .andExpect(status().isOk())
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        return objectMapper.readTree(body).get("token").asText();
     }
 }

@@ -107,11 +107,40 @@ public class GlobalExceptionHandler {
         return logAndCreateErrorResponse(request, ex, HttpStatus.FORBIDDEN);
     }
 
+    /**
+     * Authentication failures must never leak technical details.
+     * The external response must always be "Invalid credentials".
+     */
     @ExceptionHandler(AuthenticationException.class)
     @ResponseStatus(HttpStatus.UNAUTHORIZED)
     @ResponseBody
     public ResponseEntity<ErrorResponse> handleAuthenticationException(HttpServletRequest request, AuthenticationException ex) {
-        return logAndCreateErrorResponse(request, ex, HttpStatus.UNAUTHORIZED);
+
+        String message = String.format("Authentication failed for request %s %s from IP %s",
+                request.getMethod(), request.getRequestURI(), request.getRemoteAddr());
+
+        logger.warn(message, ex);
+
+        if (logger.isDebugEnabled()) {
+            logRequestDetails(request);
+        }
+
+        logFullExceptionDetails(ex);
+
+        RequestErrorEvent errorEvent = eventPublisher.publishRequestErrorEvent(this, ex, request);
+
+        String responseMessage = errorMessageProvider.getLocalizedErrorMessage(ex, request);
+
+        ErrorResponse errorResponse = new ErrorResponse(
+                HttpStatus.UNAUTHORIZED.value(),
+                "InvalidCredentials",
+                "Invalid credentials",
+                responseMessage,
+                LocalDateTime.now(),
+                errorEvent.getErrorId()
+        );
+
+        return new ResponseEntity<>(errorResponse, HttpStatus.UNAUTHORIZED);
     }
 
     @ExceptionHandler(OptimisticLockingFailureException.class)

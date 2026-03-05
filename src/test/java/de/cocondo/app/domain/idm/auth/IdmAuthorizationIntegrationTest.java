@@ -33,6 +33,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class IdmAuthorizationIntegrationTest {
 
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -68,7 +70,7 @@ class IdmAuthorizationIntegrationTest {
                 }
                 """.formatted(username, password);
 
-        String response = mockMvc.perform(post("/api/auth/login")
+        String response = mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson))
                 .andExpect(status().isOk())
@@ -105,7 +107,7 @@ class IdmAuthorizationIntegrationTest {
                 }
                 """;
 
-        mockMvc.perform(post("/api/auth/login")
+        mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginJson))
                 .andExpect(status().isUnauthorized());

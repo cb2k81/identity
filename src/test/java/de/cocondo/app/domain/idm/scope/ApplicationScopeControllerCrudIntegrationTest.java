@@ -28,7 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Controller -> Facade -> Handler -> EntityService -> Repository -> DB
  *
  * Baseline:
- * - Login under /api/auth/login
+ * - Login under /auth/login
  * - IDM management under /api/idm/**
  */
 @SpringBootTest
@@ -42,6 +42,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "idm.self.scope.stage-key=TEST"
 })
 class ApplicationScopeControllerCrudIntegrationTest {
+
+    private static final String LOGIN_ENDPOINT = "/auth/login";
 
     @Autowired
     private MockMvc mockMvc;
@@ -57,7 +59,7 @@ class ApplicationScopeControllerCrudIntegrationTest {
         req.setApplicationKey("IDM");
         req.setStageKey("TEST");
 
-        MvcResult result = mockMvc.perform(post("/api/auth/login")   // <-- KORREKT
+        MvcResult result = mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(req)))
                 .andExpect(status().isOk())

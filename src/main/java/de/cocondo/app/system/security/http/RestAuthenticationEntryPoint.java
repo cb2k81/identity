@@ -19,16 +19,11 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.time.LocalDateTime;
 
-/**
- * Ensures consistent JSON error responses for authentication failures (401),
- * e.g. missing/invalid token on /api/**.
- *
- * This runs BEFORE controller invocation, therefore GlobalExceptionHandler is NOT involved.
- */
 @Component
 public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
-    private static final Logger logger = LoggerFactory.getLogger(RestAuthenticationEntryPoint.class);
+    private static final Logger logger =
+            LoggerFactory.getLogger(RestAuthenticationEntryPoint.class);
 
     private final ObjectMapper objectMapper;
     private final EventPublisher eventPublisher;
@@ -45,13 +40,14 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(HttpServletRequest request,
                          HttpServletResponse response,
-                         AuthenticationException authException) throws IOException, ServletException {
+                         AuthenticationException authException)
+            throws IOException, ServletException {
 
-        logger.warn("Unauthorized request {} {} from IP {}: {}",
+        logger.warn("Unauthorized request {} {} from IP {}",
                 request.getMethod(),
                 request.getRequestURI(),
                 request.getRemoteAddr(),
-                authException.getMessage());
+                authException);
 
         RequestErrorEvent errorEvent =
                 eventPublisher.publishRequestErrorEvent(this, authException, request);
@@ -61,8 +57,8 @@ public class RestAuthenticationEntryPoint implements AuthenticationEntryPoint {
 
         ErrorResponse errorResponse = new ErrorResponse(
                 HttpStatus.UNAUTHORIZED.value(),
-                authException.getClass().getName(),
-                authException.getMessage(),
+                "InvalidCredentials",
+                "Invalid credentials",
                 responseMessage,
                 LocalDateTime.now(),
                 errorEvent.getErrorId()

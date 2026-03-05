@@ -14,17 +14,6 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
-/**
- * HTTP Security configuration (ALL profiles: dev/test/prod).
- *
- * Responsibility:
- * - Configure HTTP-level security (filter chain)
- * - JWT protected API under /api/**
- * - Login endpoint always reachable without authentication
- *
- * Notes:
- * - Differences between environments must be handled via properties, not profiles.
- */
 @Configuration
 @EnableWebSecurity
 public class HttpSecurityConfig {
@@ -46,24 +35,17 @@ public class HttpSecurityConfig {
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
 
-                        // ------------------------------------------------------------
-                        // Public endpoints (must stay reachable without authentication)
-                        // ------------------------------------------------------------
+                        // public authentication endpoints
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
 
-                        // login (support both paths: /api/auth/login and /api/idm/auth/login)
-                        .requestMatchers(HttpMethod.POST,
-                                "/api/auth/login",
-                                "/api/idm/auth/login"
-                        ).permitAll()
-
-                        // springdoc defaults (see EndpointPrinter)
+                        // swagger
                         .requestMatchers(
                                 "/v3/api-docs/**",
                                 "/swagger-ui/**",
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // static / landing (system DefaultController + resources)
+                        // static resources
                         .requestMatchers(
                                 "/",
                                 "/index.html",
@@ -71,15 +53,9 @@ public class HttpSecurityConfig {
                                 "/static/**"
                         ).permitAll()
 
-                        // PUBLIC API (anonymous allowed)
-                        .requestMatchers("/public/**").permitAll()
-
-                        // ------------------------------------------------------------
-                        // Protected API
-                        // ------------------------------------------------------------
+                        // protected API
                         .requestMatchers("/api/**").authenticated()
 
-                        // remaining endpoints (e.g. actuator base path etc.)
                         .anyRequest().permitAll()
                 )
                 .exceptionHandling(eh -> eh
