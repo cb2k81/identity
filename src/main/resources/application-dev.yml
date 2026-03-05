@@ -11,7 +11,7 @@ logging:
 
 idm:
   bootstrap:
-    enabled: false
+    enabled: true
     mode: safe
     base-path: idm/bootstrap
     admin-xml: admin.xml
