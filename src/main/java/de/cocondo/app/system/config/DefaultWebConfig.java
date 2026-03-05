@@ -4,6 +4,7 @@ import de.cocondo.app.system.core.http.DefaultFallbackInterceptor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
@@ -13,6 +14,7 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@EnableConfigurationProperties(DefaultWebConfigProperties.class)
 public class DefaultWebConfig implements WebMvcConfigurer {
 
     private static final Logger logger = LoggerFactory.getLogger(DefaultWebConfig.class);
@@ -26,14 +28,20 @@ public class DefaultWebConfig implements WebMvcConfigurer {
     @Value("${cors.allowed-origins:null}")
     private String[] allowedOrigins;
 
+    private final DefaultWebConfigProperties properties;
+
+    public DefaultWebConfig(DefaultWebConfigProperties properties) {
+        this.properties = properties;
+    }
+
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
 
-        registry.addInterceptor(new DefaultFallbackInterceptor())
+        var registration = registry.addInterceptor(new DefaultFallbackInterceptor())
                 .addPathPatterns("/**")
 
-                // public authentication endpoints
-                .excludePathPatterns("/auth/**")
+                // public authentication endpoints (app-specific -> moved to properties)
+                // .excludePathPatterns("/auth/**")
 
                 // secured API endpoints
                 .excludePathPatterns("/api/**")
@@ -51,6 +59,14 @@ public class DefaultWebConfig implements WebMvcConfigurer {
                 .excludePathPatterns("/favicon.ico")
                 .excludePathPatterns("/index.html")
                 .excludePathPatterns("/static/**");
+
+        if (properties.getAdditionalExcludePathPatterns() != null) {
+            for (String p : properties.getAdditionalExcludePathPatterns()) {
+                if (p != null && !p.isBlank()) {
+                    registration.excludePathPatterns(p);
+                }
+            }
+        }
     }
 
     @Override

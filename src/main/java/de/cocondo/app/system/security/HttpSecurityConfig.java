@@ -3,6 +3,7 @@ package de.cocondo.app.system.security;
 import de.cocondo.app.system.security.jwt.JwtAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -14,8 +15,10 @@ import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
+
 @Configuration
 @EnableWebSecurity
+@EnableConfigurationProperties(HttpSecurityPathsProperties.class)
 public class HttpSecurityConfig {
 
     private static final Logger logger = LoggerFactory.getLogger(HttpSecurityConfig.class);
@@ -25,7 +28,8 @@ public class HttpSecurityConfig {
             HttpSecurity http,
             JwtAuthenticationFilter jwtAuthenticationFilter,
             AuthenticationEntryPoint restAuthenticationEntryPoint,
-            AccessDeniedHandler restAccessDeniedHandler
+            AccessDeniedHandler restAccessDeniedHandler,
+            HttpSecurityPathsProperties paths
     ) throws Exception {
 
         logger.info("Initializing HttpSecurity configuration (JWT protected, all profiles)");
@@ -33,31 +37,29 @@ public class HttpSecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .authorizeHttpRequests(auth -> auth
+                .authorizeHttpRequests(auth -> {
 
-                        // public authentication endpoints
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
+                    // public POST endpoints (app-specific, e.g. login)
+                    for (String p : paths.getPermitAllPostPaths()) {
+                        if (p != null && !p.isBlank()) {
+                            auth.requestMatchers(HttpMethod.POST, p).permitAll();
+                        }
+                    }
 
-                        // swagger
-                        .requestMatchers(
-                                "/v3/api-docs/**",
-                                "/swagger-ui/**",
-                                "/swagger-ui.html"
-                        ).permitAll()
+                    // public paths (generic defaults: swagger + static)
+                    if (paths.getPermitAllPaths() != null && !paths.getPermitAllPaths().isEmpty()) {
+                        auth.requestMatchers(paths.getPermitAllPaths().toArray(new String[0])).permitAll();
+                    }
 
-                        // static resources
-                        .requestMatchers(
-                                "/",
-                                "/index.html",
-                                "/favicon.ico",
-                                "/static/**"
-                        ).permitAll()
+                    // protected paths (generic default: /api/**)
+                    for (String p : paths.getAuthenticatedPaths()) {
+                        if (p != null && !p.isBlank()) {
+                            auth.requestMatchers(p).authenticated();
+                        }
+                    }
 
-                        // protected API
-                        .requestMatchers("/api/**").authenticated()
-
-                        .anyRequest().permitAll()
-                )
+                    auth.anyRequest().permitAll();
+                })
                 .exceptionHandling(eh -> eh
                         .authenticationEntryPoint(restAuthenticationEntryPoint)
                         .accessDeniedHandler(restAccessDeniedHandler)

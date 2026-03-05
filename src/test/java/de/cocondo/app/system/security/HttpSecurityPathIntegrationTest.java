@@ -46,6 +46,8 @@ public class HttpSecurityPathIntegrationTest {
     private static final String APPLICATION_KEY = "IDM";
     private static final String STAGE_KEY = "TEST";
 
+    private static final String LOGIN_ENDPOINT = "/auth/login";
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -147,7 +149,7 @@ public class HttpSecurityPathIntegrationTest {
                 }
                 """.formatted(TEST_USERNAME, TEST_PASSWORD, APPLICATION_KEY, STAGE_KEY);
 
-        String loginResponseBody = mockMvc.perform(post("/api/auth/login")
+        String loginResponseBody = mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(loginRequest))
                 .andExpect(status().isOk())

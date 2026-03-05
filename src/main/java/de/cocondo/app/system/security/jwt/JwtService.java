@@ -36,14 +36,17 @@ public class JwtService {
     /**
      * Constructor using externalized secret configuration.
      *
-     * Property:
-     * idm.security.jwt.secret
+     * Properties (preferred first):
+     * - system.security.jwt.secret
+     * - idm.security.jwt.secret (legacy fallback)
      */
-    public JwtService(@Value("${idm.security.jwt.secret}") String secret) {
+    public JwtService(
+            @Value("${system.security.jwt.secret:${idm.security.jwt.secret:}}") String secret
+    ) {
 
         if (secret == null || secret.isBlank()) {
             throw new IllegalStateException(
-                    "JWT secret is not configured (idm.security.jwt.secret)"
+                    "JWT secret is not configured (system.security.jwt.secret or idm.security.jwt.secret)"
             );
         }
 

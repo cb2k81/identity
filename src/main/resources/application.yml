@@ -1,3 +1,4 @@
+# Datei: src/main/resources/application.yml
 # application.yml - IDM default and production profile configuration
 
 spring:
@@ -44,6 +45,16 @@ logging:
     root: INFO
     org.springframework: INFO
     org.hibernate.SQL: DEBUG
+
+system:
+  security:
+    http:
+      permit-all-post-paths:
+        - /auth/login
+  web:
+    fallback-interceptor:
+      additional-exclude-path-patterns:
+        - /auth/**
 
 idm:
   bootstrap:

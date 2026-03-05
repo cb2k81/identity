@@ -1,3 +1,4 @@
+# Datei: src/main/resources/application-dev.yml
 # application-dev.yml - IDM Development profile configuration
 
 spring:
@@ -8,6 +9,16 @@ spring:
 logging:
   level:
     root: INFO
+
+system:
+  security:
+    http:
+      permit-all-post-paths:
+        - /auth/login
+  web:
+    fallback-interceptor:
+      additional-exclude-path-patterns:
+        - /auth/**
 
 idm:
   bootstrap:
