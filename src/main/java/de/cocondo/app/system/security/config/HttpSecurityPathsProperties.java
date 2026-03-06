@@ -1,4 +1,4 @@
-package de.cocondo.app.system.security;
+package de.cocondo.app.system.security.config;
 
 import lombok.Getter;
 import lombok.Setter;

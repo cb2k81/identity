@@ -7,6 +7,7 @@ import de.cocondo.app.domain.idm.role.dto.CreateRoleRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -27,24 +28,37 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "idm.bootstrap.mode=safe",
         "idm.bootstrap.base-path=idm/bootstrap",
 
-        // wichtig: Self-Scope der IDM-Instanz im Test-Kontext
         "idm.self.scope.application-key=IDM",
         "idm.self.scope.stage-key=TEST",
 
-        // optional, aber ok für Integrationstests:
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
 class UserRoleAssignmentIntegrationTest {
 
     private static final String LOGIN_ENDPOINT = "/auth/login";
 
-    @Autowired MockMvc mvc;
-    @Autowired ObjectMapper objectMapper;
+    @Autowired
+    MockMvc mvc;
+
+    @Autowired
+    ObjectMapper objectMapper;
+
+    @Value("${idm.bootstrap.admin.username}")
+    private String adminUsername;
+
+    @Value("${idm.bootstrap.admin.password}")
+    private String adminPassword;
+
+    @Value("${idm.self.scope.application-key}")
+    private String applicationKey;
+
+    @Value("${idm.self.scope.stage-key}")
+    private String stageKey;
 
     @Test
     void assign_role_to_user_as_admin() throws Exception {
 
-        String token = loginAndGetToken("admin", "admin");
+        String token = loginAndGetToken();
 
         // scopeId via scopes endpoint
         String scopesBody = mvc.perform(get("/api/idm/scopes")
@@ -100,15 +114,13 @@ class UserRoleAssignmentIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private String loginAndGetToken(String username, String password) throws Exception {
+    private String loginAndGetToken() throws Exception {
 
         LoginRequestDTO req = new LoginRequestDTO();
-        req.setUsername(username);
-        req.setPassword(password);
-
-        // wichtig: Baseline arbeitet im Test mit IDM/TEST (nicht LOCAL)
-        req.setApplicationKey("IDM");
-        req.setStageKey("TEST");
+        req.setUsername(adminUsername);
+        req.setPassword(adminPassword);
+        req.setApplicationKey(applicationKey);
+        req.setStageKey(stageKey);
 
         String body = mvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)

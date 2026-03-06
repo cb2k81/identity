@@ -8,6 +8,7 @@ import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMock
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -16,9 +17,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "idm.bootstrap.admin.password=admin"
+})
 class AuthBootstrapIntegrationTest {
 
+    // -------------------------------------------------------------------------
+    // Test Contracts (zentral in der Testklasse definiert)
+    // -------------------------------------------------------------------------
+
     private static final String LOGIN_ENDPOINT = "/auth/login";
+
+    private static final String ADMIN_USERNAME = "admin";
+    private static final String ADMIN_PASSWORD = "admin";
+
+    private static final String SELF_APPLICATION_KEY = "IDM";
+    private static final String SELF_STAGE_KEY = "TEST";
+
+    // -------------------------------------------------------------------------
 
     @Autowired
     private MockMvc mockMvc;
@@ -26,14 +42,37 @@ class AuthBootstrapIntegrationTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @Test
-    void login_shouldWork_withBootstrapAdmin_and_selfScope() throws Exception {
+    // -------------------------------------------------------------------------
+    // Helper
+    // -------------------------------------------------------------------------
 
+    private LoginRequestDTO loginRequest(
+            String username,
+            String password,
+            String applicationKey,
+            String stageKey
+    ) {
         LoginRequestDTO request = new LoginRequestDTO();
-        request.setUsername("admin");
-        request.setPassword("admin");
-        request.setApplicationKey("IDM");
-        request.setStageKey("TEST");
+        request.setUsername(username);
+        request.setPassword(password);
+        request.setApplicationKey(applicationKey);
+        request.setStageKey(stageKey);
+        return request;
+    }
+
+    // -------------------------------------------------------------------------
+    // Tests
+    // -------------------------------------------------------------------------
+
+    @Test
+    void login_shouldWork_withBootstrapAdmin_andSelfScope() throws Exception {
+
+        LoginRequestDTO request = loginRequest(
+                ADMIN_USERNAME,
+                ADMIN_PASSWORD,
+                SELF_APPLICATION_KEY,
+                SELF_STAGE_KEY
+        );
 
         mockMvc.perform(
                         post(LOGIN_ENDPOINT)
@@ -49,11 +88,12 @@ class AuthBootstrapIntegrationTest {
     @Test
     void login_shouldFail_withWrongCredentials() throws Exception {
 
-        LoginRequestDTO request = new LoginRequestDTO();
-        request.setUsername("admin");
-        request.setPassword("wrong");
-        request.setApplicationKey("IDM");
-        request.setStageKey("TEST");
+        LoginRequestDTO request = loginRequest(
+                ADMIN_USERNAME,
+                "wrong",
+                SELF_APPLICATION_KEY,
+                SELF_STAGE_KEY
+        );
 
         mockMvc.perform(
                         post(LOGIN_ENDPOINT)
@@ -68,11 +108,12 @@ class AuthBootstrapIntegrationTest {
     @Test
     void login_shouldFail_withWrongScope() throws Exception {
 
-        LoginRequestDTO request = new LoginRequestDTO();
-        request.setUsername("admin");
-        request.setPassword("admin");
-        request.setApplicationKey("IDM");
-        request.setStageKey("DEV");
+        LoginRequestDTO request = loginRequest(
+                ADMIN_USERNAME,
+                ADMIN_PASSWORD,
+                SELF_APPLICATION_KEY,
+                "DEV"
+        );
 
         mockMvc.perform(
                         post(LOGIN_ENDPOINT)

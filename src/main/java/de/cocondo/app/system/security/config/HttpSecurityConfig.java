@@ -1,5 +1,6 @@
-package de.cocondo.app.system.security;
+package de.cocondo.app.system.security.config;
 
+import de.cocondo.app.system.security.config.HttpSecurityPathsProperties;
 import de.cocondo.app.system.security.jwt.JwtAuthenticationFilter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,7 +15,6 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.AccessDeniedHandler;
 import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-
 
 @Configuration
 @EnableWebSecurity

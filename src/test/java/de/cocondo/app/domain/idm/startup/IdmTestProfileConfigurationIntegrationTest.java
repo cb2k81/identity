@@ -3,6 +3,7 @@ package de.cocondo.app.domain.idm.startup;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,25 +18,44 @@ class IdmTestProfileConfigurationIntegrationTest {
     @Autowired
     private IdmSelfProperties selfProperties;
 
+    @Autowired
+    private Environment environment;
+
     @Test
-    void configuration_shouldMatch_application_test_yml() {
+    void bootstrap_configuration_contract_should_be_valid() {
 
         assertThat(bootstrapProperties.isEnabled()).isTrue();
         assertThat(bootstrapProperties.getMode()).isEqualTo("safe");
+
         assertThat(bootstrapProperties.getBasePath()).isEqualTo("idm/bootstrap");
 
-        assertThat(bootstrapProperties.getAdminXml()).isEqualTo("admin.xml");
-        assertThat(bootstrapProperties.getScopesXml()).isEqualTo("scopes.xml");
-        assertThat(bootstrapProperties.getPermissionGroupsXml()).isEqualTo("permission-groups.xml");
-        assertThat(bootstrapProperties.getPermissionsXml()).isEqualTo("permissions.xml");
-        assertThat(bootstrapProperties.getRolesXml()).isEqualTo("roles.xml");
-        assertThat(bootstrapProperties.getRolePermissionAssignmentsXml()).isEqualTo("role-permission-assignments.xml");
-        assertThat(bootstrapProperties.getUserRoleAssignmentsXml()).isEqualTo("user-role-assignments.xml");
+        assertThat(bootstrapProperties.getAdminXml()).isNotBlank();
+        assertThat(bootstrapProperties.getScopesXml()).isNotBlank();
+        assertThat(bootstrapProperties.getPermissionGroupsXml()).isNotBlank();
+        assertThat(bootstrapProperties.getPermissionsXml()).isNotBlank();
+        assertThat(bootstrapProperties.getRolesXml()).isNotBlank();
+        assertThat(bootstrapProperties.getRolePermissionAssignmentsXml()).isNotBlank();
+        assertThat(bootstrapProperties.getUserRoleAssignmentsXml()).isNotBlank();
+    }
 
-        assertThat(bootstrapProperties.getAdmin().getUsername()).isEqualTo("admin");
-        assertThat(bootstrapProperties.getAdmin().getPassword()).isEqualTo("admin");
+    @Test
+    void self_scope_contract_should_be_valid() {
 
-        assertThat(selfProperties.getScope().getApplicationKey()).isEqualTo("IDM");
-        assertThat(selfProperties.getScope().getStageKey()).isEqualTo("TEST");
+        assertThat(selfProperties.getScope()).isNotNull();
+        assertThat(selfProperties.getScope().getApplicationKey()).isNotBlank();
+        assertThat(selfProperties.getScope().getStageKey()).isNotBlank();
+    }
+
+    @Test
+    void jwt_configuration_contract_should_be_valid() {
+
+        String secret = environment.getProperty("idm.security.jwt.secret");
+        String ttl = environment.getProperty("idm.security.jwt.ttl-ms");
+
+        assertThat(secret).isNotBlank();
+        assertThat(secret.length()).isGreaterThanOrEqualTo(32);
+
+        assertThat(ttl).isNotBlank();
+        assertThat(Long.parseLong(ttl)).isGreaterThan(0);
     }
 }

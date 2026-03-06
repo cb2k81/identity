@@ -209,7 +209,7 @@ Entscheidung für Sprint 3:
 
 **Ziel:** IDM erhält eine robuste technische Basis wie personnel.
 
-* [ ] E2.1 Übernahme `de.cocondo.app.system.security.MethodSecurityConfig`
+* [ ] E2.1 Übernahme `de.cocondo.app.system.security.config.MethodSecurityConfig`
 * [ ] E2.2 DEV HTTP-Security analog `personnel` (`@Profile("dev")`, `permitAll`, CSRF off, form/basic off)
 * [ ] E2.3 Optional (DEV): `DevAuthenticationFilter` übernehmen, aber Authorities an IDM-Context anpassen (für Sprint 3 vorerst minimal/leer oder Auth-spezifisch)
 * [ ] E2.4 Swagger-Security: OpenAPI-Schema von `API-Token` auf `Bearer JWT` umstellen (oder ergänzen), konsistent zur Implementierung.
@@ -323,8 +323,8 @@ Entscheidung für Sprint 3:
 
 ## 9. Referenzen (aus personnel, zur Übernahme/Orientierung)
 
-* `de.cocondo.app.system.security.MethodSecurityConfig`
-* `de.cocondo.app.system.security.HttpSecurityConfig` (DEV Profil)
+* `de.cocondo.app.system.security.config.MethodSecurityConfig`
+* `de.cocondo.app.system.security.config.HttpSecurityConfig` (DEV Profil)
 * `de.cocondo.app.system.security.DevAuthenticationFilter` (DEV Profil)
 
 Relevante ADRs (personnel) als Governance-Input:

@@ -9,6 +9,7 @@ import de.cocondo.app.domain.idm.user.UserAccountEntityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -18,9 +19,10 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.notNullValue;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -34,6 +36,18 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class IdmAuthorizationIntegrationTest {
 
     private static final String LOGIN_ENDPOINT = "/auth/login";
+
+    @Value("${idm.bootstrap.admin.username}")
+    private String adminUsername;
+
+    @Value("${idm.bootstrap.admin.password}")
+    private String adminPassword;
+
+    @Value("${idm.self.scope.application-key}")
+    private String applicationKey;
+
+    @Value("${idm.self.scope.stage-key}")
+    private String stageKey;
 
     @Autowired
     private MockMvc mockMvc;
@@ -55,8 +69,10 @@ class IdmAuthorizationIntegrationTest {
     @BeforeEach
     void resolveScope() {
         testScope = applicationScopeEntityService
-                .loadByApplicationKeyAndStageKey("IDM", "TEST")
-                .orElseThrow(() -> new IllegalStateException("Scope IDM/TEST not bootstrapped"));
+                .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Scope " + applicationKey + "/" + stageKey + " not bootstrapped"
+                ));
     }
 
     private String login(String username, String password) throws Exception {
@@ -65,10 +81,10 @@ class IdmAuthorizationIntegrationTest {
                 {
                     "username": "%s",
                     "password": "%s",
-                    "applicationKey": "IDM",
-                    "stageKey": "TEST"
+                    "applicationKey": "%s",
+                    "stageKey": "%s"
                 }
-                """.formatted(username, password);
+                """.formatted(username, password, applicationKey, stageKey);
 
         String response = mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -102,10 +118,10 @@ class IdmAuthorizationIntegrationTest {
                 {
                     "username": "noScopeUser",
                     "password": "secret",
-                    "applicationKey": "IDM",
-                    "stageKey": "TEST"
+                    "applicationKey": "%s",
+                    "stageKey": "%s"
                 }
-                """;
+                """.formatted(applicationKey, stageKey);
 
         mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -137,7 +153,7 @@ class IdmAuthorizationIntegrationTest {
     @Test
     void admin_shouldAccessProtectedEndpoint() throws Exception {
 
-        String token = login("admin", "admin");
+        String token = login(adminUsername, adminPassword);
 
         mockMvc.perform(get("/api/idm/scopes")
                         .header("Authorization", "Bearer " + token))

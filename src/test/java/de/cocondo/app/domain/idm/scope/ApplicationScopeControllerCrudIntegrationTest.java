@@ -7,6 +7,7 @@ import de.cocondo.app.domain.idm.scope.dto.CreateApplicationScopeRequestDTO;
 import de.cocondo.app.domain.idm.scope.dto.UpdateApplicationScopeRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
@@ -45,6 +46,18 @@ class ApplicationScopeControllerCrudIntegrationTest {
 
     private static final String LOGIN_ENDPOINT = "/auth/login";
 
+    @Value("${idm.bootstrap.admin.username}")
+    private String adminUsername;
+
+    @Value("${idm.bootstrap.admin.password}")
+    private String adminPassword;
+
+    @Value("${idm.self.scope.application-key}")
+    private String applicationKey;
+
+    @Value("${idm.self.scope.stage-key}")
+    private String stageKey;
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -54,10 +67,10 @@ class ApplicationScopeControllerCrudIntegrationTest {
     private String loginAdminAndGetToken() throws Exception {
 
         LoginRequestDTO req = new LoginRequestDTO();
-        req.setUsername("admin");
-        req.setPassword("admin");
-        req.setApplicationKey("IDM");
-        req.setStageKey("TEST");
+        req.setUsername(adminUsername);
+        req.setPassword(adminPassword);
+        req.setApplicationKey(applicationKey);
+        req.setStageKey(stageKey);
 
         MvcResult result = mockMvc.perform(post(LOGIN_ENDPOINT)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -75,15 +88,15 @@ class ApplicationScopeControllerCrudIntegrationTest {
 
         String token = loginAdminAndGetToken();
 
-        String applicationKey = "APP-" + UUID.randomUUID();
-        String stageKey = "STAGE-" + UUID.randomUUID();
+        String applicationKeyRandom = "APP-" + UUID.randomUUID();
+        String stageKeyRandom = "STAGE-" + UUID.randomUUID();
 
         // -------------------------------------------------------
         // CREATE
         // -------------------------------------------------------
         CreateApplicationScopeRequestDTO create = new CreateApplicationScopeRequestDTO();
-        create.setApplicationKey(applicationKey);
-        create.setStageKey(stageKey);
+        create.setApplicationKey(applicationKeyRandom);
+        create.setStageKey(stageKeyRandom);
         create.setDescription("Created by integration test");
 
         MvcResult createdResult = mockMvc.perform(post("/api/idm/scopes")
@@ -92,8 +105,8 @@ class ApplicationScopeControllerCrudIntegrationTest {
                         .content(objectMapper.writeValueAsString(create)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").exists())
-                .andExpect(jsonPath("$.applicationKey").value(applicationKey))
-                .andExpect(jsonPath("$.stageKey").value(stageKey))
+                .andExpect(jsonPath("$.applicationKey").value(applicationKeyRandom))
+                .andExpect(jsonPath("$.stageKey").value(stageKeyRandom))
                 .andExpect(jsonPath("$.description").value("Created by integration test"))
                 .andReturn();
 
@@ -111,11 +124,11 @@ class ApplicationScopeControllerCrudIntegrationTest {
                         .header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(created.getId()))
-                .andExpect(jsonPath("$.applicationKey").value(applicationKey))
-                .andExpect(jsonPath("$.stageKey").value(stageKey));
+                .andExpect(jsonPath("$.applicationKey").value(applicationKeyRandom))
+                .andExpect(jsonPath("$.stageKey").value(stageKeyRandom));
 
         // -------------------------------------------------------
-        // UPDATE (nur description änderbar)
+        // UPDATE
         // -------------------------------------------------------
         UpdateApplicationScopeRequestDTO update = new UpdateApplicationScopeRequestDTO();
         update.setDescription("Updated description");
@@ -126,8 +139,8 @@ class ApplicationScopeControllerCrudIntegrationTest {
                         .content(objectMapper.writeValueAsString(update)))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.description").value("Updated description"))
-                .andExpect(jsonPath("$.applicationKey").value(applicationKey))
-                .andExpect(jsonPath("$.stageKey").value(stageKey));
+                .andExpect(jsonPath("$.applicationKey").value(applicationKeyRandom))
+                .andExpect(jsonPath("$.stageKey").value(stageKeyRandom));
 
         // -------------------------------------------------------
         // DELETE

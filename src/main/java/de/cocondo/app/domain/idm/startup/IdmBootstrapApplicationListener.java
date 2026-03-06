@@ -418,8 +418,6 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         Optional<UserAccount> existingOpt = userAccountEntityService.loadByUsername(username);
 
         if (existingOpt.isEmpty()) {
-            // Bootstrap MUST NOT depend on SecurityContext / Method-Security.
-            // Therefore we do NOT call a potentially @PreAuthorize-protected DomainService here.
             UserAccount created = new UserAccount();
             created.setUsername(username);
             created.setPasswordHash(passwordEncoder.encode(password));
@@ -433,12 +431,29 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
 
         UserAccount existing = existingOpt.get();
 
+        boolean changed = false;
+
+        if (!existing.isActive()) {
+            existing.activate();
+            changed = true;
+        }
+
+        // SAFE MODE: Passwort korrigieren wenn es nicht zur Config passt
+        if (!passwordEncoder.matches(password, existing.getPasswordHash())) {
+            existing.setPasswordHash(passwordEncoder.encode(password));
+            changed = true;
+            log.info("Admin password updated to match bootstrap configuration: username={}", username);
+        }
+
+        // FORCE MODE überschreibt immer
         if (force) {
             existing.setPasswordHash(passwordEncoder.encode(password));
-            existing.activate();
-            UserAccount saved = userAccountEntityService.save(existing);
-            log.info("Updated admin user credentials (force): id={}, username={}", saved.getId(), saved.getUsername());
-            return saved;
+            changed = true;
+            log.info("Admin password updated (force mode): username={}", username);
+        }
+
+        if (changed) {
+            return userAccountEntityService.save(existing);
         }
 
         log.info("Admin user exists: id={}, username={}", existing.getId(), existing.getUsername());
