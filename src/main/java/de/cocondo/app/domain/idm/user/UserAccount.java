@@ -10,6 +10,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
+
 /**
  * Aggregate root representing a technical user account in the IDM domain.
  *
@@ -44,6 +46,22 @@ public class UserAccount extends DomainEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "state", nullable = false, length = 64)
     private UserAccountState state = UserAccountState.ACTIVE;
+
+    /**
+     * Number of consecutive failed login attempts.
+     *
+     * Used for login protection / brute-force prevention.
+     */
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    /**
+     * Timestamp until which the account is temporarily locked.
+     *
+     * If null → no temporary lock active.
+     */
+    @Column(name = "locked_until")
+    private Instant lockedUntil;
 
     public void activate() {
         this.state = UserAccountState.ACTIVE;

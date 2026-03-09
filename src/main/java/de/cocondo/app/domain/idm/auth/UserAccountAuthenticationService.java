@@ -2,12 +2,14 @@ package de.cocondo.app.domain.idm.auth;
 
 import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntityService;
 import de.cocondo.app.domain.idm.assignment.UserRoleAssignmentEntityService;
+import de.cocondo.app.domain.idm.config.IdmSecurityProperties;
 import de.cocondo.app.domain.idm.role.Role;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.InvalidCredentialsException;
 import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
+import de.cocondo.app.domain.idm.user.UserAccountState;
 import de.cocondo.app.domain.idm.user.dto.AuthenticateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import lombok.RequiredArgsConstructor;
@@ -16,6 +18,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 @Service
@@ -29,7 +32,9 @@ public class UserAccountAuthenticationService {
     private final UserApplicationScopeAssignmentEntityService userApplicationScopeAssignmentEntityService;
     private final UserRoleAssignmentEntityService userRoleAssignmentEntityService;
     private final PasswordEncoder passwordEncoder;
+    private final IdmSecurityProperties idmSecurityProperties;
 
+    @Transactional
     public AuthenticatedUserDTO authenticate(AuthenticateUserRequestDTO request) {
 
         validateRequest(request);
@@ -38,12 +43,54 @@ public class UserAccountAuthenticationService {
                 .loadByUsername(request.getUsername())
                 .orElseThrow(InvalidCredentialsException::new);
 
+        Instant now = Instant.now();
+
+        // permanent lock
+        if (user.getState() == UserAccountState.LOCKED_PERMANENT) {
+            throw new InvalidCredentialsException();
+        }
+
+        // temporary lock still active
+        if (user.getState() == UserAccountState.LOCKED_TEMPORARY
+                && user.getLockedUntil() != null
+                && user.getLockedUntil().isAfter(now)) {
+            throw new InvalidCredentialsException();
+        }
+
+        // temporary lock expired → reactivate
+        if (user.getState() == UserAccountState.LOCKED_TEMPORARY
+                && user.getLockedUntil() != null
+                && user.getLockedUntil().isBefore(now)) {
+
+            user.activate();
+            user.setLockedUntil(null);
+            user.setFailedLoginAttempts(0);
+            userAccountEntityService.save(user);
+        }
+
         if (!user.isActive()) {
             throw new InvalidCredentialsException();
         }
 
+        // password check
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
+
+            handleFailedLogin(user);
+
             throw new InvalidCredentialsException();
+        }
+
+        // successful login → reset counters
+        if (user.getFailedLoginAttempts() > 0 || user.getLockedUntil() != null) {
+
+            user.setFailedLoginAttempts(0);
+            user.setLockedUntil(null);
+
+            if (user.getState() == UserAccountState.LOCKED_TEMPORARY) {
+                user.activate();
+            }
+
+            userAccountEntityService.save(user);
         }
 
         ApplicationScope scope = applicationScopeEntityService
@@ -87,6 +134,34 @@ public class UserAccountAuthenticationService {
                 scope.getStageKey());
 
         return dto;
+    }
+
+    private void handleFailedLogin(UserAccount user) {
+
+        int attempts = user.getFailedLoginAttempts() + 1;
+        user.setFailedLoginAttempts(attempts);
+
+        int maxAttempts = idmSecurityProperties
+                .getLoginProtection()
+                .getMaxFailedAttempts();
+
+        if (attempts >= maxAttempts) {
+
+            long lockSeconds = idmSecurityProperties
+                    .getLoginProtection()
+                    .getLockDurationSeconds();
+
+            Instant lockedUntil = Instant.now().plusSeconds(lockSeconds);
+
+            user.lockTemporarily();
+            user.setLockedUntil(lockedUntil);
+
+            log.warn("User temporarily locked due to failed logins: userId={}, username={}",
+                    user.getId(),
+                    user.getUsername());
+        }
+
+        userAccountEntityService.save(user);
     }
 
     private void validateRequest(AuthenticateUserRequestDTO request) {

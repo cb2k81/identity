@@ -55,6 +55,12 @@
             <description>Delete roles</description>
             <systemProtected>true</systemProtected>
         </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_READ</name>
+            <description>Read roles</description>
+            <systemProtected>true</systemProtected>
+        </permission>
 
         <!-- Assignments -->
         <permission>

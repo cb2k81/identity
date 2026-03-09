@@ -28,7 +28,7 @@ public class UserAccountController {
     }
 
     @GetMapping("/{id}")
-    public UserAccountDTO getById(@PathVariable String id) {
+    public UserAccountDTO getById(@PathVariable("id") String id) {
         return userAccountDomainService.getUserById(id);
     }
 
@@ -38,23 +38,26 @@ public class UserAccountController {
     }
 
     @PutMapping("/{id}/activate")
-    public UserAccountDTO activate(@PathVariable String id) {
+    public UserAccountDTO activate(@PathVariable("id") String id) {
         return userAccountDomainService.activate(id);
     }
 
     @PutMapping("/{id}/deactivate")
-    public UserAccountDTO deactivate(@PathVariable String id) {
+    public UserAccountDTO deactivate(@PathVariable("id") String id) {
         return userAccountDomainService.deactivate(id);
     }
 
     @PutMapping("/{id}/password")
-    public UserAccountDTO changePassword(@PathVariable String id, @RequestBody ChangePasswordRequestDTO request) {
+    public UserAccountDTO changePassword(
+            @PathVariable("id") String id,
+            @RequestBody ChangePasswordRequestDTO request) {
+
         return userAccountDomainService.changePassword(id, request);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void delete(@PathVariable String id) {
+    public void delete(@PathVariable("id") String id) {
         userAccountDomainService.deleteUser(id);
     }
 }

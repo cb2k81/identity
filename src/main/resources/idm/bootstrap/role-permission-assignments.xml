@@ -37,6 +37,10 @@
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_ROLE_DELETE</permissionName>
         </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_READ</permissionName>
+        </assignment>
 
         <assignment>
             <roleName>IDM_ADMIN</roleName>

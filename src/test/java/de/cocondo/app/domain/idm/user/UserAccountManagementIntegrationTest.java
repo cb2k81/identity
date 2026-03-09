@@ -186,18 +186,21 @@ class UserAccountManagementIntegrationTest {
         OffsetDateTime now = OffsetDateTime.now();
 
         jdbc.update("""
-            insert into user_account
-            (id, created_at, created_by, last_modified_at, last_modified_by,
-             persistence_version, username, password_hash, state)
-            values (?, ?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+        insert into user_account
+        (id, created_at, created_by, last_modified_at, last_modified_by,
+         persistence_version, username, password_hash, state,
+         failed_login_attempts, locked_until)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    """,
                 id,
                 now, null,
                 now, null,
                 0,
                 username,
                 passwordEncoder.encode(rawPassword),
-                "ACTIVE"
+                "ACTIVE",
+                0,
+                null
         );
 
         return id;
