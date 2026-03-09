@@ -89,7 +89,7 @@ class UserRoleAssignmentIntegrationTest {
         // create user
         CreateUserRequestDTO userReq = new CreateUserRequestDTO();
         userReq.setUsername("u_assign");
-        userReq.setPassword("pw");
+        userReq.setPassword("password");
 
         String userBody = mvc.perform(post("/api/idm/users")
                         .header("Authorization", "Bearer " + token)

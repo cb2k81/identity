@@ -43,6 +43,10 @@ idm:
 
   security:
     jwt:
-      # DEV darf eigenes Secret haben (separat von PROD), aber muss existieren
       secret: dev-secret-32-bytes-minimum-length-1234567
       ttl-ms: 3600000
+    password-policy:
+      minimum-length: 3
+    login-protection:
+      max-failed-attempts: 5
+      lock-duration-seconds: 300

@@ -27,6 +27,7 @@ public class UserAccountDomainService {
 
     private final UserAccountEntityService userAccountEntityService;
     private final PasswordEncoder passwordEncoder;
+    private final PasswordPolicyValidator passwordPolicyValidator;
 
     @PreAuthorize("hasAuthority('" + IDM_USER_CREATE + "')")
     public UserAccountDTO createUser(CreateUserRequestDTO request) {
@@ -40,6 +41,8 @@ public class UserAccountDomainService {
         if (request.getPassword() == null || request.getPassword().isBlank()) {
             throw new IllegalArgumentException("password must not be blank");
         }
+
+        passwordPolicyValidator.validate(request.getPassword());
 
         Optional<UserAccount> existing =
                 userAccountEntityService.loadByUsername(request.getUsername());
@@ -116,6 +119,8 @@ public class UserAccountDomainService {
         if (request.getNewPassword() == null || request.getNewPassword().isBlank()) {
             throw new IllegalArgumentException("newPassword must not be blank");
         }
+
+        passwordPolicyValidator.validate(request.getNewPassword());
 
         UserAccount user = loadUserByIdRequired(id);
 

@@ -56,6 +56,10 @@ idm:
 
   security:
     jwt:
-      # Muss existieren, sonst fliegt JwtService beim Instantiieren
       secret: test-secret-32-bytes-minimum-length-123456
       ttl-ms: 3600000
+    password-policy:
+      minimum-length: 3
+    login-protection:
+      max-failed-attempts: 5
+      lock-duration-seconds: 300
