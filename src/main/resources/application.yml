@@ -44,7 +44,7 @@ logging:
   level:
     root: INFO
     org.springframework: INFO
-    org.hibernate.SQL: DEBUG
+    org.hibernate.SQL: OFF
 
 system:
   security:

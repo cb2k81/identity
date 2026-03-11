@@ -8,7 +8,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.MediaType;
 import org.springframework.web.servlet.config.annotation.ContentNegotiationConfigurer;
-import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
@@ -24,9 +23,6 @@ public class DefaultWebConfig implements WebMvcConfigurer {
 
     @Value("${your.property.swagger-ui:/swagger-ui}")
     private String swaggerUiPath;
-
-    @Value("${cors.allowed-origins:null}")
-    private String[] allowedOrigins;
 
     private final DefaultWebConfigProperties properties;
 
@@ -66,17 +62,6 @@ public class DefaultWebConfig implements WebMvcConfigurer {
                     registration.excludePathPatterns(p);
                 }
             }
-        }
-    }
-
-    @Override
-    public void addCorsMappings(CorsRegistry registry) {
-
-        if (allowedOrigins != null && allowedOrigins.length > 0) {
-            registry.addMapping("/**")
-                    .allowedOrigins(allowedOrigins)
-                    .allowedMethods("*")
-                    .allowedHeaders("*");
         }
     }
 

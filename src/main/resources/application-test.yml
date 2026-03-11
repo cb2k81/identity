@@ -22,9 +22,14 @@ spring:
 logging:
   level:
     root: INFO
+    org.hibernate.SQL: OFF
 
 system:
   security:
+    cors:
+      allowed-origins:
+        - http://localhost:5175
+      allow-credentials: true
     http:
       permit-all-post-paths:
         - /auth/login
