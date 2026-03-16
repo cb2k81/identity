@@ -1,3 +1,4 @@
+// Datei: src/main/java/de/cocondo/app/domain/idm/startup/AdminUserXml.java
 package de.cocondo.app.domain.idm.startup;
 
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
@@ -15,6 +16,12 @@ public class AdminUserXml {
 
     @JacksonXmlProperty(localName = "username")
     private String username;
+
+    @JacksonXmlProperty(localName = "displayName")
+    private String displayName;
+
+    @JacksonXmlProperty(localName = "email")
+    private String email;
 
     @JacksonXmlProperty(localName = "password")
     private String password;

@@ -1,3 +1,4 @@
+// Datei: src/test/java/de/cocondo/app/domain/idm/user/UserAccountManagementIntegrationTest.java
 package de.cocondo.app.domain.idm.user;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,7 +51,7 @@ class UserAccountManagementIntegrationTest {
 
         assignPermissionToRole(roleId, permissionId);
 
-        adminUserId = insertUser("admin", "admin");
+        adminUserId = insertUser("admin", "Administrator", "admin@local.test", "admin");
 
         assignRoleToUser(adminUserId, roleId);
         assignScopeToUser(adminUserId, scopeId);
@@ -63,6 +64,8 @@ class UserAccountManagementIntegrationTest {
 
         CreateUserRequestDTO create = new CreateUserRequestDTO();
         create.setUsername("u1");
+        create.setDisplayName("User One");
+        create.setEmail("u1@test.local");
         create.setPassword("pw1");
 
         mvc.perform(post("/api/idm/users")
@@ -70,7 +73,10 @@ class UserAccountManagementIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(create)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.username", is("u1")));
+                .andExpect(jsonPath("$.username", is("u1")))
+                .andExpect(jsonPath("$.displayName", is("User One")))
+                .andExpect(jsonPath("$.email", is("u1@test.local")))
+                .andExpect(jsonPath("$.state", is("ACTIVE")));
     }
 
     private String loginAndGetToken(String username, String password) throws Exception {
@@ -91,10 +97,6 @@ class UserAccountManagementIntegrationTest {
 
         return objectMapper.readTree(body).get("token").asText();
     }
-
-    // -------------------------------------------------------------------------
-    // INSERT HELPERS (unverändert aus Baseline)
-    // -------------------------------------------------------------------------
 
     private String insertScope(String appKey, String stageKey) {
         String id = UUID.randomUUID().toString();
@@ -180,7 +182,7 @@ class UserAccountManagementIntegrationTest {
         );
     }
 
-    private String insertUser(String username, String rawPassword) {
+    private String insertUser(String username, String displayName, String email, String rawPassword) {
 
         String id = UUID.randomUUID().toString();
         OffsetDateTime now = OffsetDateTime.now();
@@ -188,15 +190,17 @@ class UserAccountManagementIntegrationTest {
         jdbc.update("""
         insert into user_account
         (id, created_at, created_by, last_modified_at, last_modified_by,
-         persistence_version, username, password_hash, state,
+         persistence_version, username, display_name, email, password_hash, state,
          failed_login_attempts, locked_until)
-        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        values (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
                 id,
                 now, null,
                 now, null,
                 0,
                 username,
+                displayName,
+                email,
                 passwordEncoder.encode(rawPassword),
                 "ACTIVE",
                 0,

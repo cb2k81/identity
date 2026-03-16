@@ -61,7 +61,7 @@ idm:
     enabled: false
     mode: safe
     base-path: idm/bootstrap
-    admin-xml: admin.xml
+    admin-xml: admin-user.xml
     scopes-xml: scopes.xml
     permission-groups-xml: permission-groups.xml
     permissions-xml: permissions.xml

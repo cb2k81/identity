@@ -86,10 +86,14 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         // 3) Resolve admin config (XML preferred, properties fallback)
         AdminUserXml adminXml = xmlLoader.loadAdminUserOrNull();
         String adminUsername;
+        String adminDisplayName = null;
+        String adminEmail = null;
         String adminPassword;
 
         if (adminXml != null) {
             adminUsername = required(adminXml.getUsername(), "bootstrap admin XML: username");
+            adminDisplayName = adminXml.getDisplayName();
+            adminEmail = adminXml.getEmail();
             adminPassword = required(adminXml.getPassword(), "bootstrap admin XML: password");
         } else {
             adminUsername = required(bootstrapProperties.getAdmin().getUsername(), "idm.bootstrap.admin.username");
@@ -97,7 +101,7 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         }
 
         // 4) Ensure admin user exists (+ optional force reset)
-        UserAccount adminUser = ensureAdminUser(adminUsername, adminPassword, force);
+        UserAccount adminUser = ensureAdminUser(adminUsername, adminDisplayName, adminEmail, adminPassword, force);
 
         // 5) Ensure assignment admin -> self scope exists
         ensureAdminAssignment(adminUser, scope);
@@ -413,47 +417,59 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         return existing;
     }
 
-    private UserAccount ensureAdminUser(String username, String password, boolean force) {
+    private UserAccount ensureAdminUser(
+            String username,
+            String displayName,
+            String email,
+            String password,
+            boolean force
+    ) {
 
         Optional<UserAccount> existingOpt = userAccountEntityService.loadByUsername(username);
 
         if (existingOpt.isEmpty()) {
             UserAccount created = new UserAccount();
             created.setUsername(username);
+            created.setDisplayName(displayName);
+            created.setEmail(email);
             created.setPasswordHash(passwordEncoder.encode(password));
             created.activate();
 
             UserAccount saved = userAccountEntityService.save(created);
-
             log.info("Created admin user: id={}, username={}", saved.getId(), saved.getUsername());
             return saved;
         }
 
         UserAccount existing = existingOpt.get();
 
-        boolean changed = false;
-
-        if (!existing.isActive()) {
-            existing.activate();
-            changed = true;
-        }
-
-        // SAFE MODE: Passwort korrigieren wenn es nicht zur Config passt
-        if (!passwordEncoder.matches(password, existing.getPasswordHash())) {
-            existing.setPasswordHash(passwordEncoder.encode(password));
-            changed = true;
-            log.info("Admin password updated to match bootstrap configuration: username={}", username);
-        }
-
-        // FORCE MODE überschreibt immer
         if (force) {
-            existing.setPasswordHash(passwordEncoder.encode(password));
-            changed = true;
-            log.info("Admin password updated (force mode): username={}", username);
-        }
+            boolean changed = false;
 
-        if (changed) {
-            return userAccountEntityService.save(existing);
+            if (!passwordEncoder.matches(password, existing.getPasswordHash())) {
+                existing.setPasswordHash(passwordEncoder.encode(password));
+                changed = true;
+            }
+
+            if (!Objects.equals(existing.getDisplayName(), displayName)) {
+                existing.setDisplayName(displayName);
+                changed = true;
+            }
+
+            if (!Objects.equals(existing.getEmail(), email)) {
+                existing.setEmail(email);
+                changed = true;
+            }
+
+            if (!existing.isActive()) {
+                existing.activate();
+                changed = true;
+            }
+
+            if (changed) {
+                UserAccount saved = userAccountEntityService.save(existing);
+                log.info("Updated admin user (force): id={}, username={}", saved.getId(), saved.getUsername());
+                return saved;
+            }
         }
 
         log.info("Admin user exists: id={}, username={}", existing.getId(), existing.getUsername());

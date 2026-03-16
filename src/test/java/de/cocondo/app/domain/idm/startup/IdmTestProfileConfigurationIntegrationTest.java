@@ -27,7 +27,7 @@ class IdmTestProfileConfigurationIntegrationTest {
         assertThat(bootstrapProperties.isEnabled()).isTrue();
         assertThat(bootstrapProperties.getMode()).isEqualTo("safe");
 
-        assertThat(bootstrapProperties.getBasePath()).isEqualTo("idm/bootstrap");
+        assertThat(bootstrapProperties.getBasePath()).isEqualTo("idm/bootstrap-test");
 
         assertThat(bootstrapProperties.getAdminXml()).isNotBlank();
         assertThat(bootstrapProperties.getScopesXml()).isNotBlank();

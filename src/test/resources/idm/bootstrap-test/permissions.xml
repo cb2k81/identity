@@ -1,12 +1,34 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <permissions>
     <items>
+
+        <!-- Scopes -->
         <permission>
-            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
-            <name>IDM_SCOPE_READ</name>
-            <description>Read scopes (from test resources)</description>
+            <permissionGroupName>IDM_SCOPE</permissionGroupName>
+            <name>IDM_SCOPE_CREATE</name>
+            <description>Create application scopes (from test resources)</description>
             <systemProtected>true</systemProtected>
         </permission>
+        <permission>
+            <permissionGroupName>IDM_SCOPE</permissionGroupName>
+            <name>IDM_SCOPE_READ</name>
+            <description>Read application scopes (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_SCOPE</permissionGroupName>
+            <name>IDM_SCOPE_UPDATE</name>
+            <description>Update application scopes (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_SCOPE</permissionGroupName>
+            <name>IDM_SCOPE_DELETE</name>
+            <description>Delete application scopes (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <!-- Permissions / Roles -->
         <permission>
             <permissionGroupName>IDM_PERMISSION</permissionGroupName>
             <name>IDM_ROLE_CREATE</name>
@@ -14,9 +36,98 @@
             <systemProtected>true</systemProtected>
         </permission>
         <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_READ</name>
+            <description>Read roles (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_UPDATE</name>
+            <description>Update roles (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_DELETE</name>
+            <description>Delete roles (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_CREATE</name>
+            <description>Create permissions (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_READ</name>
+            <description>Read permissions (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_UPDATE</name>
+            <description>Update permissions (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_DELETE</name>
+            <description>Delete permissions (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_PERMISSION_ASSIGN</name>
+            <description>Assign permissions to roles (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_PERMISSION_UNASSIGN</name>
+            <description>Unassign permissions from roles (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <!-- Users -->
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_CREATE</name>
+            <description>Create users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
             <permissionGroupName>IDM_USER</permissionGroupName>
             <name>IDM_USER_READ</name>
             <description>Read users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_UPDATE</name>
+            <description>Update users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_DELETE</name>
+            <description>Delete users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_ROLE_ASSIGN</name>
+            <description>Assign roles to users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_ROLE_UNASSIGN</name>
+            <description>Unassign roles from users (from test resources)</description>
             <systemProtected>true</systemProtected>
         </permission>
 

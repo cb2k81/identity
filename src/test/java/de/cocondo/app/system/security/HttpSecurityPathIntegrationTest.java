@@ -16,6 +16,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.notNullValue;
@@ -39,14 +40,28 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
+@TestPropertySource(properties = {
+        "idm.bootstrap.enabled=true",
+        "idm.bootstrap.mode=safe",
+        "idm.bootstrap.base-path=idm/bootstrap-test",
+        "idm.bootstrap.admin-xml=admin-user.xml",
+        "idm.bootstrap.scopes-xml=scopes.xml",
+        "idm.bootstrap.permission-groups-xml=permission-groups.xml",
+        "idm.bootstrap.permissions-xml=permissions.xml",
+        "idm.bootstrap.roles-xml=roles.xml",
+        "idm.bootstrap.role-permission-assignments-xml=role-permission-assignments.xml",
+        "idm.bootstrap.user-role-assignments-xml=user-role-assignments.xml",
+        "idm.self.scope.application-key=IDM",
+        "idm.self.scope.stage-key=TEST"
+})
 public class HttpSecurityPathIntegrationTest {
+
+    private static final String LOGIN_ENDPOINT = "/auth/login";
 
     private static final String TEST_USERNAME = "admin";
     private static final String TEST_PASSWORD = "secret";
     private static final String APPLICATION_KEY = "IDM";
     private static final String STAGE_KEY = "TEST";
-
-    private static final String LOGIN_ENDPOINT = "/auth/login";
 
     @Autowired
     private MockMvc mockMvc;
@@ -61,48 +76,20 @@ public class HttpSecurityPathIntegrationTest {
     private ApplicationScopeEntityService applicationScopeEntityService;
 
     @Autowired
-    private UserApplicationScopeAssignmentEntityService userScopeAssignmentService;
+    private UserApplicationScopeAssignmentEntityService userApplicationScopeAssignmentEntityService;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    private ApplicationScope scope;
-    private UserAccount user;
+    private ApplicationScope testScope;
 
     @BeforeEach
-    void setup() {
-
-        // 1) Scope sicherstellen
-        scope = applicationScopeEntityService
+    void setUp() {
+        testScope = applicationScopeEntityService
                 .loadByApplicationKeyAndStageKey(APPLICATION_KEY, STAGE_KEY)
-                .orElseGet(() -> {
-                    ApplicationScope s = new ApplicationScope();
-                    s.setApplicationKey(APPLICATION_KEY);
-                    s.setStageKey(STAGE_KEY);
-                    s.setDescription("Test Scope");
-                    return applicationScopeEntityService.save(s);
-                });
-
-        // 2) User sicherstellen (über EntityService, NICHT DomainService)
-        user = userAccountEntityService
-                .loadByUsername(TEST_USERNAME)
-                .orElseGet(() -> {
-                    UserAccount u = new UserAccount();
-                    u.setUsername(TEST_USERNAME);
-                    u.setPasswordHash(passwordEncoder.encode(TEST_PASSWORD));
-                    u.activate();
-                    return userAccountEntityService.save(u);
-                });
-
-        // 3) Scope-Zuordnung sicherstellen
-        if (!userScopeAssignmentService
-                .existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId())) {
-
-            UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
-            assignment.setUserAccount(user);
-            assignment.setApplicationScope(scope);
-            userScopeAssignmentService.save(assignment);
-        }
+                .orElseThrow(() -> new IllegalStateException(
+                        "Scope " + APPLICATION_KEY + "/" + STAGE_KEY + " not bootstrapped"
+                ));
     }
 
     @Test
@@ -131,6 +118,48 @@ public class HttpSecurityPathIntegrationTest {
     @Test
     void token_apiIs200() throws Exception {
         String token = loginAndGetToken();
+
+        mockMvc.perform(get("/api/application/info")
+                        .header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artifactId", notNullValue()));
+    }
+
+    @Test
+    void userWithScopeButNoRole_getsTokenAndCanAccessAuthenticatedApi() throws Exception {
+
+        UserAccount user = new UserAccount();
+        user.setUsername("httpPathPlainUser");
+        user.setDisplayName("HTTP Path Plain User");
+        user.setEmail("http-path-plain-user@test.local");
+        user.setPasswordHash(passwordEncoder.encode("secret"));
+        user.activate();
+        userAccountEntityService.save(user);
+
+        UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
+        assignment.setUserAccount(user);
+        assignment.setApplicationScope(testScope);
+        userApplicationScopeAssignmentEntityService.save(assignment);
+
+        String loginRequest = """
+                {
+                    "username": "httpPathPlainUser",
+                    "password": "secret",
+                    "applicationKey": "%s",
+                    "stageKey": "%s"
+                }
+                """.formatted(APPLICATION_KEY, STAGE_KEY);
+
+        String loginResponseBody = mockMvc.perform(post(LOGIN_ENDPOINT)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(loginRequest))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.token", notNullValue()))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String token = objectMapper.readTree(loginResponseBody).get("token").asText();
 
         mockMvc.perform(get("/api/application/info")
                         .header("Authorization", "Bearer " + token))

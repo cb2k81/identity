@@ -1,3 +1,4 @@
+// Datei: src/main/java/de/cocondo/app/domain/idm/user/UserAccount.java
 package de.cocondo.app.domain.idm.user;
 
 import de.cocondo.app.system.entity.DomainEntity;
@@ -30,6 +31,12 @@ public class UserAccount extends DomainEntity {
      */
     @Column(name = "username", nullable = false, unique = true)
     private String username;
+
+    @Column(name = "display_name")
+    private String displayName;
+
+    @Column(name = "email")
+    private String email;
 
     /**
      * BCrypt password hash.

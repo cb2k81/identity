@@ -3,6 +3,7 @@ package de.cocondo.app.domain.idm.startup;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -24,6 +25,9 @@ class IdmDevProfileConfigurationIntegrationTest {
     @Autowired
     private IdmSelfProperties selfProperties;
 
+    @Autowired
+    private Environment environment;
+
     @Test
     void configuration_shouldMatch_application_dev_yml() {
 
@@ -31,7 +35,7 @@ class IdmDevProfileConfigurationIntegrationTest {
         assertThat(bootstrapProperties.getMode()).isEqualTo("safe");
         assertThat(bootstrapProperties.getBasePath()).isEqualTo("idm/bootstrap");
 
-        assertThat(bootstrapProperties.getAdminXml()).isEqualTo("admin.xml");
+        assertThat(bootstrapProperties.getAdminXml()).isEqualTo("admin-user.xml");
         assertThat(bootstrapProperties.getScopesXml()).isEqualTo("scopes.xml");
         assertThat(bootstrapProperties.getPermissionGroupsXml()).isEqualTo("permission-groups.xml");
         assertThat(bootstrapProperties.getPermissionsXml()).isEqualTo("permissions.xml");
@@ -40,7 +44,15 @@ class IdmDevProfileConfigurationIntegrationTest {
         assertThat(bootstrapProperties.getUserRoleAssignmentsXml()).isEqualTo("user-role-assignments.xml");
 
         assertThat(bootstrapProperties.getAdmin().getUsername()).isEqualTo("admin");
-        assertThat(bootstrapProperties.getAdmin().getPassword()).isEqualTo("admin");
+        assertThat(bootstrapProperties.getAdmin().getPassword()).isNotBlank();
+
+        String minimumLengthProperty = environment.getProperty("idm.security.password-policy.minimum-length");
+        assertThat(minimumLengthProperty).isNotBlank();
+
+        int minimumLength = Integer.parseInt(minimumLengthProperty);
+        assertThat(minimumLength).isGreaterThan(0);
+
+        assertThat(bootstrapProperties.getAdmin().getPassword().length()).isGreaterThanOrEqualTo(minimumLength);
 
         assertThat(selfProperties.getScope().getApplicationKey()).isEqualTo("IDM");
         assertThat(selfProperties.getScope().getStageKey()).isEqualTo("DEV");

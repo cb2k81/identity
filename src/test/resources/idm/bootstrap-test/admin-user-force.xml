@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <adminUser>
     <username>admin</username>
+    <displayName>Administrator Force</displayName>
+    <email>admin-force@test.local</email>
     <password>adminForce</password>
 </adminUser>

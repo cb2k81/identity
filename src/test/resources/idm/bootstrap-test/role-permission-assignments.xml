@@ -1,13 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <rolePermissionAssignments>
     <items>
+
+        <!-- Scopes -->
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_SCOPE_CREATE</permissionName>
+        </assignment>
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_SCOPE_READ</permissionName>
         </assignment>
         <assignment>
             <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_SCOPE_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_SCOPE_DELETE</permissionName>
+        </assignment>
+
+        <!-- Roles / Permissions -->
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_CREATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_DELETE</permissionName>
+        </assignment>
+
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_CREATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_DELETE</permissionName>
+        </assignment>
+
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_PERMISSION_ASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_PERMISSION_UNASSIGN</permissionName>
+        </assignment>
+
+        <!-- Users -->
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_CREATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_USER_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_DELETE</permissionName>
+        </assignment>
+
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_ROLE_ASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_ROLE_UNASSIGN</permissionName>
         </assignment>
 
     </items>

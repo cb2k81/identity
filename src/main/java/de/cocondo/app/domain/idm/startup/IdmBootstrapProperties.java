@@ -37,7 +37,7 @@ public class IdmBootstrapProperties {
      * Admin user XML file name within basePath.
      * Example: "admin.xml"
      */
-    private String adminXml = "admin.xml";
+    private String adminXml = "admin-user.xml";
 
     /**
      * Application scopes XML file name within basePath.

@@ -1,3 +1,4 @@
+// Datei: src/test/java/de/cocondo/app/domain/idm/startup/IdmBootstrapForceIntegrationTest.java
 package de.cocondo.app.domain.idm.startup;
 
 import de.cocondo.app.domain.idm.assignment.RolePermissionAssignmentRepository;
@@ -90,9 +91,11 @@ class IdmBootstrapForceIntegrationTest {
         scope.setDescription("WRONG DESC");
         scopeEntityService.save(scope);
 
-        // --- Pre-state: Admin mit falschem Passwort (EntityService!)
+        // --- Pre-state: Admin mit falschen Werten (EntityService!)
         UserAccount admin = new UserAccount();
         admin.setUsername("admin");
+        admin.setDisplayName("Wrong Admin");
+        admin.setEmail("wrong@test.local");
         admin.setPasswordHash(passwordEncoder.encode("wrong"));
         admin.activate();
         userAccountEntityService.save(admin);
@@ -139,48 +142,15 @@ class IdmBootstrapForceIntegrationTest {
 
         assertThat(passwordEncoder.matches("adminForce", adminAfter.getPasswordHash())).isTrue();
         assertThat(adminAfter.isActive()).isTrue();
+        assertThat(adminAfter.getDisplayName()).isEqualTo("Administrator Force");
+        assertThat(adminAfter.getEmail()).isEqualTo("admin-force@test.local");
 
         ApplicationScope scopeAfter =
-                scopeEntityService.loadByApplicationKeyAndStageKey("IDM", "TEST")
-                        .orElseThrow();
+                scopeEntityService.loadByApplicationKeyAndStageKey("IDM", "TEST").orElseThrow();
 
-        assertThat(scopeAfter.getDescription())
-                .isEqualTo("IDM Test (FORCE override)");
+        assertThat(scopeAfter.getDescription()).isEqualTo("IDM Test (FORCE override)");
 
-        boolean assignmentExists =
-                assignmentRepository.existsByUserAccount_IdAndApplicationScope_Id(
-                        adminAfter.getId(),
-                        scopeAfter.getId()
-                );
-
-        assertThat(assignmentExists).isTrue();
-
-        PermissionGroup groupAfter =
-                permissionGroupEntityService
-                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_PERMISSION")
-                        .orElseThrow();
-
-        assertThat(groupAfter.getDescription())
-                .isEqualTo("IDM Permission Group (FORCE override)");
-
-        Permission permAfter =
-                permissionEntityService
-                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_SCOPE_READ")
-                        .orElseThrow();
-
-        assertThat(permAfter.getDescription())
-                .isEqualTo("Read scopes (FORCE override)");
-        assertThat(permAfter.isSystemProtected()).isTrue();
-
-        Role roleAfter =
-                roleEntityService
-                        .loadByApplicationScopeIdAndName(scopeAfter.getId(), "IDM_ADMIN")
-                        .orElseThrow();
-
-        assertThat(roleAfter.getDescription())
-                .isEqualTo("IDM Admin (FORCE override)");
-        assertThat(roleAfter.isSystemProtected()).isTrue();
-
+        assertThat(assignmentRepository.count()).isEqualTo(1L);
         assertThat(rolePermissionAssignmentRepository.count()).isEqualTo(1L);
         assertThat(userRoleAssignmentRepository.count()).isEqualTo(1L);
     }

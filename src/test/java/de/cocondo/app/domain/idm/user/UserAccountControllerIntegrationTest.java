@@ -1,3 +1,4 @@
+// Datei: src/test/java/de/cocondo/app/domain/idm/user/UserAccountControllerIntegrationTest.java
 package de.cocondo.app.domain.idm.user;
 
 import de.cocondo.app.domain.idm.AbstractIdmIntegrationTest;
@@ -24,9 +25,13 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
         String token = loginAdminAndGetToken();
 
         String username = "user_" + UUID.randomUUID();
+        String displayName = "User Display";
+        String email = "user@example.org";
 
         CreateUserRequestDTO request = new CreateUserRequestDTO();
         request.setUsername(username);
+        request.setDisplayName(displayName);
+        request.setEmail(email);
         request.setPassword("password");
 
         String response = mockMvc.perform(
@@ -38,6 +43,9 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id").value(notNullValue()))
                 .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.displayName").value(displayName))
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.state").value("ACTIVE"))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -50,7 +58,10 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
                 )
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.id").value(userId))
-                .andExpect(jsonPath("$.username").value(username));
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.displayName").value(displayName))
+                .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.state").value("ACTIVE"));
     }
 
     @Test

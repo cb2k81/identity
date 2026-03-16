@@ -1,3 +1,4 @@
+// Datei: src/main/java/de/cocondo/app/domain/idm/user/UserAccountDomainService.java
 package de.cocondo.app.domain.idm.user;
 
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
@@ -53,6 +54,8 @@ public class UserAccountDomainService {
 
         UserAccount user = new UserAccount();
         user.setUsername(request.getUsername());
+        user.setDisplayName(request.getDisplayName());
+        user.setEmail(request.getEmail());
         user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
         user.activate();
 
@@ -154,6 +157,8 @@ public class UserAccountDomainService {
         UserAccountDTO dto = new UserAccountDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
+        dto.setDisplayName(user.getDisplayName());
+        dto.setEmail(user.getEmail());
         dto.setState(user.getState());
         return dto;
     }

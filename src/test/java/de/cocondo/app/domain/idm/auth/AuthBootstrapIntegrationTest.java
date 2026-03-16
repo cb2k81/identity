@@ -29,7 +29,7 @@ class AuthBootstrapIntegrationTest {
     private static final String LOGIN_ENDPOINT = "/auth/login";
 
     private static final String ADMIN_USERNAME = "admin";
-    private static final String ADMIN_PASSWORD = "admin";
+    private static final String ADMIN_PASSWORD = "secret";
 
     private static final String SELF_APPLICATION_KEY = "IDM";
     private static final String SELF_STAGE_KEY = "TEST";

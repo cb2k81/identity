@@ -21,8 +21,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
@@ -30,6 +30,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @TestPropertySource(properties = {
         "idm.bootstrap.enabled=true",
         "idm.bootstrap.mode=safe",
+        "idm.bootstrap.base-path=idm/bootstrap-test",
+        "idm.bootstrap.admin-xml=admin-user.xml",
+        "idm.bootstrap.scopes-xml=scopes.xml",
+        "idm.bootstrap.permission-groups-xml=permission-groups.xml",
+        "idm.bootstrap.permissions-xml=permissions.xml",
+        "idm.bootstrap.roles-xml=roles.xml",
+        "idm.bootstrap.role-permission-assignments-xml=role-permission-assignments.xml",
+        "idm.bootstrap.user-role-assignments-xml=user-role-assignments.xml",
         "idm.self.scope.application-key=IDM",
         "idm.self.scope.stage-key=TEST"
 })
@@ -37,11 +45,8 @@ class IdmAuthorizationIntegrationTest {
 
     private static final String LOGIN_ENDPOINT = "/auth/login";
 
-    @Value("${idm.bootstrap.admin.username}")
-    private String adminUsername;
-
-    @Value("${idm.bootstrap.admin.password}")
-    private String adminPassword;
+    private static final String BOOTSTRAP_ADMIN_USERNAME = "admin";
+    private static final String BOOTSTRAP_ADMIN_PASSWORD = "secret";
 
     @Value("${idm.self.scope.application-key}")
     private String applicationKey;
@@ -153,7 +158,7 @@ class IdmAuthorizationIntegrationTest {
     @Test
     void admin_shouldAccessProtectedEndpoint() throws Exception {
 
-        String token = login(adminUsername, adminPassword);
+        String token = login(BOOTSTRAP_ADMIN_USERNAME, BOOTSTRAP_ADMIN_PASSWORD);
 
         mockMvc.perform(get("/api/idm/scopes")
                         .header("Authorization", "Bearer " + token))
