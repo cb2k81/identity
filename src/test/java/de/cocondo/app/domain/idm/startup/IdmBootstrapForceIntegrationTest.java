@@ -1,4 +1,3 @@
-// Datei: src/test/java/de/cocondo/app/domain/idm/startup/IdmBootstrapForceIntegrationTest.java
 package de.cocondo.app.domain.idm.startup;
 
 import de.cocondo.app.domain.idm.assignment.RolePermissionAssignmentRepository;
@@ -21,6 +20,7 @@ import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.ConfigurableApplicationContext;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -28,7 +28,15 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest
+@SpringBootTest(properties = {
+        "spring.datasource.url=jdbc:h2:mem:idm-force-test;DB_CLOSE_DELAY=-1;MODE=MariaDB",
+        "spring.datasource.driver-class-name=org.h2.Driver",
+        "spring.datasource.username=sa",
+        "spring.datasource.password=",
+        "spring.liquibase.enabled=false",
+        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
+})
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @ActiveProfiles("test")
 @TestPropertySource(properties = {
         "idm.bootstrap.enabled=false",
@@ -40,8 +48,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "idm.bootstrap.roles-xml=roles-force.xml",
         "idm.bootstrap.role-permission-assignments-xml=role-permission-assignments-force.xml",
         "idm.bootstrap.user-role-assignments-xml=user-role-assignments-force.xml",
-        "idm.self.application-key=IDM",
-        "idm.self.stage-key=TEST"
+        "idm.self.scope.application-key=IDM",
+        "idm.self.scope.stage-key=TEST"
 })
 class IdmBootstrapForceIntegrationTest {
 
