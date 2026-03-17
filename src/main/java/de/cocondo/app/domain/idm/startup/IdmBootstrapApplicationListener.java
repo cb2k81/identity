@@ -25,6 +25,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 
@@ -41,7 +42,7 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
     private final UserAccountEntityService userAccountEntityService;
     private final UserApplicationScopeAssignmentEntityService assignmentEntityService;
 
-    // Authorization bootstrap (Self-Scope only)
+    // Authorization bootstrap (Self-Scope only + foreign-scope roles)
     private final PermissionGroupEntityService permissionGroupEntityService;
     private final PermissionEntityService permissionEntityService;
     private final RoleEntityService roleEntityService;
@@ -74,16 +75,23 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
                     "Expected at classpath:" + bootstrapProperties.getBasePath() + "/" + bootstrapProperties.getScopesXml());
         }
 
+        List<ApplicationScope> ensuredScopes = scopesXml.getItems().stream()
+                .map(it -> ensureScope(it, force))
+                .toList();
+
         ApplicationScopesXml.ApplicationScopeXmlItem selfScopeXml = scopesXml.getItems().stream()
                 .filter(it -> selfAppKey.equals(it.getApplicationKey()) && selfStageKey.equals(it.getStageKey()))
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Self scope not found in scopes XML: (" + selfAppKey + "," + selfStageKey + ")"));
 
-        // 2) Ensure scope exists
-        ApplicationScope scope = ensureScope(selfScopeXml, force);
+        ApplicationScope selfScope = ensuredScopes.stream()
+                .filter(it -> selfAppKey.equals(it.getApplicationKey()) && selfStageKey.equals(it.getStageKey()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalStateException(
+                        "Self scope not found after ensureScope(): (" + selfAppKey + "," + selfStageKey + ")"));
 
-        // 3) Resolve admin config (XML preferred, properties fallback)
+        // 2) Resolve admin config (XML preferred, properties fallback)
         AdminUserXml adminXml = xmlLoader.loadAdminUserOrNull();
         String adminUsername;
         String adminDisplayName = null;
@@ -100,14 +108,46 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
             adminPassword = required(bootstrapProperties.getAdmin().getPassword(), "idm.bootstrap.admin.password");
         }
 
-        // 4) Ensure admin user exists (+ optional force reset)
-        UserAccount adminUser = ensureAdminUser(adminUsername, adminDisplayName, adminEmail, adminPassword, force);
+        // 3) Ensure admin user exists (+ optional force reset)
+        UserAccount adminUser = ensureUser(adminUsername, adminDisplayName, adminEmail, adminPassword, force, "admin user");
 
-        // 5) Ensure assignment admin -> self scope exists
-        ensureAdminAssignment(adminUser, scope);
+        // 4) Ensure assignment admin -> self scope exists
+        ensureUserApplicationScopeAssignment(adminUser, selfScope, "admin assignment");
 
-        // 6) Authorization bootstrap for Self-Scope only
-        ensureAuthorizationBootstrap(scope, force);
+        // 5) Ensure additional users from XML (optional)
+        UsersXml usersXml = xmlLoader.loadUsersOrNull();
+        if (usersXml == null || usersXml.getItems() == null || usersXml.getItems().isEmpty()) {
+            log.info("IDM bootstrap: users XML missing/empty (skipping additional users).");
+        } else {
+            usersXml.getItems().forEach(it -> ensureAdditionalUser(it, force));
+        }
+
+        // 6) Ensure additional user -> scope assignments from XML (optional)
+        UserApplicationScopeAssignmentsXml userScopeXml = xmlLoader.loadUserApplicationScopeAssignmentsOrNull();
+        if (userScopeXml == null || userScopeXml.getItems() == null || userScopeXml.getItems().isEmpty()) {
+            log.info("IDM bootstrap: user-application-scope assignments XML missing/empty (skipping user-application-scope assignments).");
+        } else {
+            userScopeXml.getItems().forEach(this::ensureUserApplicationScopeAssignment);
+        }
+
+        // 7) Authorization bootstrap for Self-Scope only
+        ensureAuthorizationBootstrap(selfScope, force);
+
+        // 8) Foreign-scope roles bootstrap (optional)
+        ScopedRolesXml scopedRolesXml = xmlLoader.loadScopedRolesOrNull();
+        if (scopedRolesXml == null || scopedRolesXml.getItems() == null || scopedRolesXml.getItems().isEmpty()) {
+            log.info("IDM bootstrap: scoped roles XML missing/empty (skipping scoped roles).");
+        } else {
+            scopedRolesXml.getItems().forEach(it -> ensureScopedRole(it, force));
+        }
+
+        // 9) Foreign-scope user-role assignments bootstrap (optional)
+        ScopedUserRoleAssignmentsXml scopedUserRoleAssignmentsXml = xmlLoader.loadScopedUserRoleAssignmentsOrNull();
+        if (scopedUserRoleAssignmentsXml == null || scopedUserRoleAssignmentsXml.getItems() == null || scopedUserRoleAssignmentsXml.getItems().isEmpty()) {
+            log.info("IDM bootstrap: scoped user-role assignments XML missing/empty (skipping scoped user-role assignments).");
+        } else {
+            scopedUserRoleAssignmentsXml.getItems().forEach(this::ensureScopedUserRoleAssignment);
+        }
 
         log.info("IDM bootstrap completed (mode={}, selfScope=({},{}), admin={})",
                 mode, selfAppKey, selfStageKey, adminUsername);
@@ -154,6 +194,15 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         } else {
             userRoleXml.getItems().forEach(it -> ensureUserRoleAssignment(selfScope, it));
         }
+    }
+
+    private void ensureAdditionalUser(UsersXml.UserXmlItem xmlItem, boolean force) {
+        String username = required(xmlItem.getUsername(), "users XML: username");
+        String displayName = xmlItem.getDisplayName();
+        String email = xmlItem.getEmail();
+        String password = required(xmlItem.getPassword(), "users XML: password");
+
+        ensureUser(username, displayName, email, password, force, "additional user");
     }
 
     private PermissionGroup ensurePermissionGroup(
@@ -244,12 +293,6 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
                 changed = true;
             }
 
-            // group could have changed in XML (force allows deterministic correction)
-            if (!existing.getPermissionGroup().getId().equals(group.getId())) {
-                existing.setPermissionGroup(group);
-                changed = true;
-            }
-
             if (changed) {
                 Permission saved = permissionEntityService.save(existing);
                 log.info("Updated Permission (force): id={}, scopeId={}, name={}", saved.getId(), scope.getId(), saved.getName());
@@ -311,6 +354,62 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         }
 
         log.info("Role exists: id={}, scopeId={}, name={}", existing.getId(), scope.getId(), existing.getName());
+        return existing;
+    }
+
+    private Role ensureScopedRole(
+            ScopedRolesXml.ScopedRoleXmlItem xmlItem,
+            boolean force
+    ) {
+
+        String applicationKey = required(xmlItem.getApplicationKey(), "scopedRoles XML: applicationKey");
+        String stageKey = required(xmlItem.getStageKey(), "scopedRoles XML: stageKey");
+        String name = required(xmlItem.getName(), "scopedRoles XML: name");
+        String description = xmlItem.getDescription();
+        boolean systemProtected = xmlItem.isSystemProtected();
+
+        ApplicationScope scope = applicationScopeEntityService
+                .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
+                .orElseThrow(() -> new IllegalStateException(
+                        "ApplicationScope not found for scoped role bootstrap: (" + applicationKey + "," + stageKey + ")"));
+
+        Optional<Role> existingOpt = roleEntityService.loadByApplicationScopeIdAndName(scope.getId(), name);
+
+        if (existingOpt.isEmpty()) {
+            Role created = new Role();
+            created.setApplicationScope(scope);
+            created.setName(name);
+            created.setDescription(description);
+            created.setSystemProtected(systemProtected);
+
+            Role saved = roleEntityService.save(created);
+            log.info("Created scoped Role: id={}, scopeId={}, name={}", saved.getId(), scope.getId(), saved.getName());
+            return saved;
+        }
+
+        Role existing = existingOpt.get();
+
+        if (force) {
+            boolean changed = false;
+
+            if (!Objects.equals(existing.getDescription(), description)) {
+                existing.setDescription(description);
+                changed = true;
+            }
+
+            if (existing.isSystemProtected() != systemProtected) {
+                existing.setSystemProtected(systemProtected);
+                changed = true;
+            }
+
+            if (changed) {
+                Role saved = roleEntityService.save(existing);
+                log.info("Updated scoped Role (force): id={}, scopeId={}, name={}", saved.getId(), scope.getId(), saved.getName());
+                return saved;
+            }
+        }
+
+        log.info("Scoped Role exists: id={}, scopeId={}, name={}", existing.getId(), scope.getId(), existing.getName());
         return existing;
     }
 
@@ -382,6 +481,49 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
                 saved.getId(), username, roleName);
     }
 
+    private void ensureScopedUserRoleAssignment(
+            ScopedUserRoleAssignmentsXml.ScopedUserRoleAssignmentXmlItem xmlItem
+    ) {
+
+        String username = required(xmlItem.getUsername(), "scopedUserRoleAssignments XML: username");
+        String applicationKey = required(xmlItem.getApplicationKey(), "scopedUserRoleAssignments XML: applicationKey");
+        String stageKey = required(xmlItem.getStageKey(), "scopedUserRoleAssignments XML: stageKey");
+        String roleName = required(xmlItem.getRoleName(), "scopedUserRoleAssignments XML: roleName");
+
+        UserAccount user = userAccountEntityService
+                .loadByUsername(username)
+                .orElseThrow(() -> new IllegalStateException(
+                        "UserAccount not found for scoped user-role bootstrap: " + username));
+
+        ApplicationScope scope = applicationScopeEntityService
+                .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
+                .orElseThrow(() -> new IllegalStateException(
+                        "ApplicationScope not found for scoped user-role bootstrap: (" + applicationKey + "," + stageKey + ")"));
+
+        Role role = roleEntityService
+                .loadByApplicationScopeIdAndName(scope.getId(), roleName)
+                .orElseThrow(() -> new IllegalStateException(
+                        "Role not found for scoped user-role bootstrap: " + roleName));
+
+        boolean exists = userRoleAssignmentEntityService.loadAllByUserAccountId(user.getId())
+                .stream()
+                .anyMatch(a -> a.getRole().getId().equals(role.getId()));
+
+        if (exists) {
+            log.info("Scoped UserRoleAssignment exists: username={}, applicationKey={}, stageKey={}, roleName={}",
+                    username, applicationKey, stageKey, roleName);
+            return;
+        }
+
+        UserRoleAssignment assignment = new UserRoleAssignment();
+        assignment.setUserAccount(user);
+        assignment.setRole(role);
+
+        UserRoleAssignment saved = userRoleAssignmentEntityService.save(assignment);
+        log.info("Created scoped UserRoleAssignment: id={}, username={}, applicationKey={}, stageKey={}, roleName={}",
+                saved.getId(), username, applicationKey, stageKey, roleName);
+    }
+
     private ApplicationScope ensureScope(ApplicationScopesXml.ApplicationScopeXmlItem xmlItem, boolean force) {
 
         Optional<ApplicationScope> existingOpt =
@@ -417,12 +559,13 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         return existing;
     }
 
-    private UserAccount ensureAdminUser(
+    private UserAccount ensureUser(
             String username,
             String displayName,
             String email,
-            String password,
-            boolean force
+            String rawPassword,
+            boolean force,
+            String logContext
     ) {
 
         Optional<UserAccount> existingOpt = userAccountEntityService.loadByUsername(username);
@@ -432,11 +575,11 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
             created.setUsername(username);
             created.setDisplayName(displayName);
             created.setEmail(email);
-            created.setPasswordHash(passwordEncoder.encode(password));
+            created.setPasswordHash(passwordEncoder.encode(rawPassword));
             created.activate();
 
             UserAccount saved = userAccountEntityService.save(created);
-            log.info("Created admin user: id={}, username={}", saved.getId(), saved.getUsername());
+            log.info("Created {}: id={}, username={}", logContext, saved.getId(), saved.getUsername());
             return saved;
         }
 
@@ -444,11 +587,6 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
 
         if (force) {
             boolean changed = false;
-
-            if (!passwordEncoder.matches(password, existing.getPasswordHash())) {
-                existing.setPasswordHash(passwordEncoder.encode(password));
-                changed = true;
-            }
 
             if (!Objects.equals(existing.getDisplayName(), displayName)) {
                 existing.setDisplayName(displayName);
@@ -460,6 +598,9 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
                 changed = true;
             }
 
+            existing.setPasswordHash(passwordEncoder.encode(rawPassword));
+            changed = true;
+
             if (!existing.isActive()) {
                 existing.activate();
                 changed = true;
@@ -467,50 +608,81 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
 
             if (changed) {
                 UserAccount saved = userAccountEntityService.save(existing);
-                log.info("Updated admin user (force): id={}, username={}", saved.getId(), saved.getUsername());
+                log.info("Updated {} (force): id={}, username={}", logContext, saved.getId(), saved.getUsername());
                 return saved;
             }
         }
 
-        log.info("Admin user exists: id={}, username={}", existing.getId(), existing.getUsername());
+        log.info("{} exists: id={}, username={}", capitalize(logContext), existing.getId(), existing.getUsername());
         return existing;
     }
 
-    private void ensureAdminAssignment(UserAccount adminUser, ApplicationScope scope) {
+    private void ensureUserApplicationScopeAssignment(
+            UserAccount user,
+            ApplicationScope scope,
+            String logContext
+    ) {
 
-        boolean exists = assignmentEntityService.existsByUserAccountIdAndApplicationScopeId(adminUser.getId(), scope.getId());
+        boolean exists = assignmentEntityService.existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId());
+
         if (exists) {
-            log.info("Admin assignment exists: userId={}, scopeId={}", adminUser.getId(), scope.getId());
+            log.info("{} exists: username={}, applicationKey={}, stageKey={}",
+                    capitalize(logContext), user.getUsername(), scope.getApplicationKey(), scope.getStageKey());
             return;
         }
 
         UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
-        assignment.setUserAccount(adminUser);
+        assignment.setUserAccount(user);
         assignment.setApplicationScope(scope);
 
         UserApplicationScopeAssignment saved = assignmentEntityService.save(assignment);
-        log.info("Created admin assignment: id={}, userId={}, scopeId={}",
-                saved.getId(), adminUser.getId(), scope.getId());
+        log.info("Created {}: id={}, username={}, applicationKey={}, stageKey={}",
+                logContext, saved.getId(), user.getUsername(), scope.getApplicationKey(), scope.getStageKey());
     }
 
-    private static String normalizeMode(String mode) {
+    private void ensureUserApplicationScopeAssignment(
+            UserApplicationScopeAssignmentsXml.UserApplicationScopeAssignmentXmlItem xmlItem
+    ) {
+
+        String username = required(xmlItem.getUsername(), "userApplicationScopeAssignments XML: username");
+        String applicationKey = required(xmlItem.getApplicationKey(), "userApplicationScopeAssignments XML: applicationKey");
+        String stageKey = required(xmlItem.getStageKey(), "userApplicationScopeAssignments XML: stageKey");
+
+        UserAccount user = userAccountEntityService
+                .loadByUsername(username)
+                .orElseThrow(() -> new IllegalStateException(
+                        "UserAccount not found for user-application-scope bootstrap: " + username));
+
+        ApplicationScope scope = applicationScopeEntityService
+                .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
+                .orElseThrow(() -> new IllegalStateException(
+                        "ApplicationScope not found for user-application-scope bootstrap: (" + applicationKey + "," + stageKey + ")"));
+
+        ensureUserApplicationScopeAssignment(user, scope, "user-application-scope assignment");
+    }
+
+    private String normalizeMode(String mode) {
         if (mode == null) {
             return "safe";
         }
-        String m = mode.trim().toLowerCase();
-        if (m.isEmpty()) {
-            return "safe";
-        }
-        if (!m.equals("safe") && !m.equals("force")) {
-            throw new IllegalArgumentException("Unsupported idm.bootstrap.mode: " + mode + " (supported: safe|force)");
-        }
-        return m;
+        String normalized = mode.trim().toLowerCase();
+        return switch (normalized) {
+            case "safe", "force" -> normalized;
+            default -> throw new IllegalStateException("Unsupported idm.bootstrap.mode: " + mode);
+        };
     }
 
-    private static String required(String value, String name) {
+    private String required(String value, String label) {
         if (value == null || value.isBlank()) {
-            throw new IllegalArgumentException("Missing required configuration: " + name);
+            throw new IllegalStateException("Missing required value: " + label);
         }
-        return value.trim();
+        return value;
+    }
+
+    private String capitalize(String value) {
+        if (value == null || value.isBlank()) {
+            return value;
+        }
+        return Character.toUpperCase(value.charAt(0)) + value.substring(1);
     }
 }

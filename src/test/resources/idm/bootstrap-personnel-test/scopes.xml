@@ -3,18 +3,8 @@
     <items>
         <scope>
             <applicationKey>IDM</applicationKey>
-            <stageKey>DEV</stageKey>
-            <description>IDM Development</description>
-        </scope>
-        <scope>
-            <applicationKey>IDM</applicationKey>
             <stageKey>TEST</stageKey>
             <description>IDM Test</description>
-        </scope>
-        <scope>
-            <applicationKey>IDM</applicationKey>
-            <stageKey>PROD</stageKey>
-            <description>IDM Production</description>
         </scope>
         <scope>
             <applicationKey>PERSONNEL</applicationKey>

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scopedRoles>
+    <items>
+        <role>
+            <applicationKey>PERSONNEL</applicationKey>
+            <stageKey>DEV</stageKey>
+            <name>PERSONNEL_APP</name>
+            <description>Technical role for Personnel DEV</description>
+            <systemProtected>true</systemProtected>
+        </role>
+    </items>
+</scopedRoles>

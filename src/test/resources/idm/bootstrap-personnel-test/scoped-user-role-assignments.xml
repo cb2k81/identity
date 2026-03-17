@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scopedUserRoleAssignments>
+    <items>
+        <assignment>
+            <username>personnel-app</username>
+            <applicationKey>PERSONNEL</applicationKey>
+            <stageKey>DEV</stageKey>
+            <roleName>PERSONNEL_APP</roleName>
+        </assignment>
+    </items>
+</scopedUserRoleAssignments>

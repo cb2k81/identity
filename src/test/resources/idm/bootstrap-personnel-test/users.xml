@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+    <items>
+        <user>
+            <username>personnel-app</username>
+            <displayName>Personnel App Service User</displayName>
+            <email>personnel-app@test.local</email>
+            <password>personnel-secret</password>
+        </user>
+    </items>
+</users>

@@ -40,10 +40,22 @@ public class IdmBootstrapProperties {
     private String adminXml = "admin-user.xml";
 
     /**
+     * Additional users XML file name within basePath.
+     * Example: "users.xml"
+     */
+    private String usersXml = "users.xml";
+
+    /**
      * Application scopes XML file name within basePath.
      * Example: "scopes.xml"
      */
     private String scopesXml = "scopes.xml";
+
+    /**
+     * User-ApplicationScope assignments XML file name within basePath.
+     * Example: "user-application-scope-assignments.xml"
+     */
+    private String userApplicationScopeAssignmentsXml = "user-application-scope-assignments.xml";
 
     /**
      * Permission groups XML file name within basePath.
@@ -64,6 +76,16 @@ public class IdmBootstrapProperties {
     private String rolesXml = "roles.xml";
 
     /**
+     * Roles XML file name for non-self scopes within basePath.
+     * Example: "scoped-roles.xml"
+     *
+     * Purpose:
+     * - bootstrap foreign-scope roles (e.g. PERSONNEL/DEV)
+     * - does not bootstrap permissions for foreign scopes
+     */
+    private String scopedRolesXml = "scoped-roles.xml";
+
+    /**
      * Role-Permission assignments XML file name within basePath.
      * Example: "role-permission-assignments.xml"
      */
@@ -74,6 +96,12 @@ public class IdmBootstrapProperties {
      * Example: "user-role-assignments.xml"
      */
     private String userRoleAssignmentsXml = "user-role-assignments.xml";
+
+    /**
+     * User-Role assignments XML file name for non-self scopes within basePath.
+     * Example: "scoped-user-role-assignments.xml"
+     */
+    private String scopedUserRoleAssignmentsXml = "scoped-user-role-assignments.xml";
 
     /**
      * Default admin configuration (used as fallback if no admin.xml exists).
