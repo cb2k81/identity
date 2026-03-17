@@ -3,5 +3,5 @@
     <username>admin</username>
     <displayName>Administrator</displayName>
     <email>admin@idm.local</email>
-    <password>secret1</password>
+    <password>secret</password>
 </adminUser>
