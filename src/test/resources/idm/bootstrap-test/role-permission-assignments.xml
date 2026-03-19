@@ -2,7 +2,7 @@
 <rolePermissionAssignments>
     <items>
 
-        <!-- Scopes -->
+        <!-- IDM_ADMIN gets all current IDM management authorities (from test resources) -->
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_SCOPE_CREATE</permissionName>
@@ -18,6 +18,23 @@
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_SCOPE_DELETE</permissionName>
+        </assignment>
+
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_CREATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_DELETE</permissionName>
         </assignment>
 
         <!-- Roles / Permissions -->
@@ -36,23 +53,6 @@
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_ROLE_DELETE</permissionName>
-        </assignment>
-
-        <assignment>
-            <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_PERMISSION_CREATE</permissionName>
-        </assignment>
-        <assignment>
-            <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_PERMISSION_READ</permissionName>
-        </assignment>
-        <assignment>
-            <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_PERMISSION_UPDATE</permissionName>
-        </assignment>
-        <assignment>
-            <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_PERMISSION_DELETE</permissionName>
         </assignment>
 
         <assignment>
@@ -89,6 +89,14 @@
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_USER_ROLE_UNASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_SCOPE_ASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_SCOPE_UNASSIGN</permissionName>
         </assignment>
 
     </items>

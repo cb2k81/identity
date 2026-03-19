@@ -4,19 +4,21 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.env.Environment;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+@ActiveProfiles("dev")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:idm-devtest;DB_CLOSE_DELAY=-1;MODE=MariaDB",
+        "spring.datasource.url=jdbc:h2:mem:idm-devtest-${random.uuid};MODE=MariaDB",
         "spring.datasource.driver-class-name=org.h2.Driver",
         "spring.datasource.username=sa",
         "spring.datasource.password=",
         "spring.liquibase.enabled=false",
         "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
 })
-@ActiveProfiles("dev")
 class IdmDevProfileConfigurationIntegrationTest {
 
     @Autowired

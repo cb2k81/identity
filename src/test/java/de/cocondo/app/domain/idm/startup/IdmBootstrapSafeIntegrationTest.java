@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
@@ -21,6 +22,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 @SpringBootTest
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
         "idm.bootstrap.enabled=true",
         "idm.bootstrap.mode=safe",
@@ -32,8 +34,8 @@ import static org.assertj.core.api.Assertions.assertThat;
         "idm.bootstrap.roles-xml=roles.xml",
         "idm.bootstrap.role-permission-assignments-xml=role-permission-assignments.xml",
         "idm.bootstrap.user-role-assignments-xml=user-role-assignments.xml",
-        "idm.self.application-key=IDM",
-        "idm.self.stage-key=TEST"
+        "idm.self.scope.application-key=IDM",
+        "idm.self.scope.stage-key=TEST"
 })
 class IdmBootstrapSafeIntegrationTest {
 

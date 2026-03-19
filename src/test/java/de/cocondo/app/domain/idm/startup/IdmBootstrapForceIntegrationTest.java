@@ -28,16 +28,9 @@ import java.time.Duration;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringBootTest(properties = {
-        "spring.datasource.url=jdbc:h2:mem:idm-force-test;DB_CLOSE_DELAY=-1;MODE=MariaDB",
-        "spring.datasource.driver-class-name=org.h2.Driver",
-        "spring.datasource.username=sa",
-        "spring.datasource.password=",
-        "spring.liquibase.enabled=false",
-        "spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.H2Dialect"
-})
-@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
+@SpringBootTest
 @ActiveProfiles("test")
+@DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
 @TestPropertySource(properties = {
         "idm.bootstrap.enabled=false",
         "idm.bootstrap.base-path=idm/bootstrap-test",

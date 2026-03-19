@@ -40,4 +40,7 @@ public final class IdmManagementAuthorities {
 
     public static final String IDM_USER_ROLE_ASSIGN = "IDM_USER_ROLE_ASSIGN";
     public static final String IDM_USER_ROLE_UNASSIGN = "IDM_USER_ROLE_UNASSIGN";
+
+    public static final String IDM_USER_SCOPE_ASSIGN = "IDM_USER_SCOPE_ASSIGN";
+    public static final String IDM_USER_SCOPE_UNASSIGN = "IDM_USER_SCOPE_UNASSIGN";
 }

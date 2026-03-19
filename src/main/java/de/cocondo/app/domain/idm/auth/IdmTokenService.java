@@ -3,6 +3,7 @@ package de.cocondo.app.domain.idm.auth;
 import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import de.cocondo.app.system.security.jwt.JwtService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +26,7 @@ import java.util.Map;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class IdmTokenService {
 
     private final JwtService jwtService;
@@ -50,6 +52,15 @@ public class IdmTokenService {
         claims.put("applicationKey", user.getApplicationKey());
         claims.put("stageKey", user.getStageKey());
         claims.put("roles", user.getRoles());
+
+        log.info(
+                "Issuing JWT: userId={}, username={}, scope={}/{}, roles={}",
+                user.getId(),
+                user.getUsername(),
+                user.getApplicationKey(),
+                user.getStageKey(),
+                user.getRoles()
+        );
 
         Date expiration = calculateExpiration();
         String token = jwtService.generateToken(claims, expiration);

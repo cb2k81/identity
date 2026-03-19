@@ -26,20 +26,33 @@
         </assignment>
         <assignment>
             <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_READ</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_PERMISSION_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_PERMISSION_DELETE</permissionName>
         </assignment>
 
+        <!-- Roles / Permissions -->
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_ROLE_CREATE</permissionName>
         </assignment>
         <assignment>
             <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_ROLE_DELETE</permissionName>
+            <permissionName>IDM_ROLE_READ</permissionName>
         </assignment>
         <assignment>
             <roleName>IDM_ADMIN</roleName>
-            <permissionName>IDM_ROLE_READ</permissionName>
+            <permissionName>IDM_ROLE_UPDATE</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_ROLE_DELETE</permissionName>
         </assignment>
 
         <assignment>
@@ -51,6 +64,7 @@
             <permissionName>IDM_ROLE_PERMISSION_UNASSIGN</permissionName>
         </assignment>
 
+        <!-- Users -->
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_USER_CREATE</permissionName>
@@ -75,6 +89,14 @@
         <assignment>
             <roleName>IDM_ADMIN</roleName>
             <permissionName>IDM_USER_ROLE_UNASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_SCOPE_ASSIGN</permissionName>
+        </assignment>
+        <assignment>
+            <roleName>IDM_ADMIN</roleName>
+            <permissionName>IDM_USER_SCOPE_UNASSIGN</permissionName>
         </assignment>
 
     </items>

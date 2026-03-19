@@ -37,4 +37,9 @@ public class UserApplicationScopeAssignmentEntityService {
     public UserApplicationScopeAssignment save(UserApplicationScopeAssignment assignment) {
         return repository.save(assignment);
     }
+
+    @Transactional
+    public void delete(UserApplicationScopeAssignment assignment) {
+        repository.delete(assignment);
+    }
 }

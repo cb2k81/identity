@@ -1,7 +1,7 @@
 # IDM Sprint 7 – Abschlussbericht
 
-**Stand:** 2026-03-17
-**Version:** 1.0
+**Stand:** 2026-03-19
+**Version:** 1.1
 
 ---
 
@@ -31,18 +31,20 @@ Das Sprint-Ziel wurde im Kern vollständig erreicht:
 * Das fachliche Verhalten der Berechtigungsauflösung blieb unverändert.
 * Die Anwendung ist buildbar und lauffähig.
 * Relevante Integrationstests sowie die vollständige Testsuite wurden erfolgreich ausgeführt.
+* Die Testarchitektur wurde in der Abschlussphase zusätzlich stabilisiert, sodass Maven- und IDE-Ausführung wieder konsistent deterministisch grün sind.
 
 ### Status
 
-| Bereich                                 |                Status | Bewertung                                                                |
-| --------------------------------------- | --------------------: | ------------------------------------------------------------------------ |
-| Technischer Schnitt im `system`-Bereich |            ✅ Erledigt | Generische Security-Infrastruktur ist nicht mehr direkt an IDM gekoppelt |
-| IDM-spezifische Berechtigungsauflösung  |            ✅ Erledigt | Fachlogik liegt jetzt in der IDM-Domain                                  |
-| Verhaltensgleichheit zur Baseline       |            ✅ Erledigt | Keine beabsichtigte fachliche Änderung                                   |
-| Build-/Spring-Kontext                   |            ✅ Erledigt | Nach Ergänzung der Bean wieder vollständig funktionsfähig                |
-| Regressionsprüfung                      |            ✅ Erledigt | Relevante Security-/Auth-Tests grün                                      |
-| Vollständige Testsuite                  |            ✅ Erledigt | Gesamtsuite grün                                                         |
-| Übertragung auf Personnel               | ⏳ Offen / Folgearbeit | Bewusst nicht Teil dieses Projekts                                       |
+| Bereich                                 |                Status | Bewertung                                                                              |
+| --------------------------------------- | --------------------: | -------------------------------------------------------------------------------------- |
+| Technischer Schnitt im `system`-Bereich |            ✅ Erledigt | Generische Security-Infrastruktur ist nicht mehr direkt an IDM gekoppelt               |
+| IDM-spezifische Berechtigungsauflösung  |            ✅ Erledigt | Fachlogik liegt jetzt in der IDM-Domain                                                |
+| Verhaltensgleichheit zur Baseline       |            ✅ Erledigt | Keine beabsichtigte fachliche Änderung                                                 |
+| Build-/Spring-Kontext                   |            ✅ Erledigt | Nach Ergänzung der Bean wieder vollständig funktionsfähig                              |
+| Regressionsprüfung                      |            ✅ Erledigt | Relevante Security-/Auth-Tests grün                                                    |
+| Vollständige Testsuite                  |            ✅ Erledigt | Gesamtsuite grün                                                                       |
+| Testarchitektur / IDE-Kompatibilität    |            ✅ Erledigt | Testprofil/Datasource deterministisch stabilisiert; Maven und IntelliJ konsistent grün |
+| Übertragung auf Personnel               | ⏳ Offen / Folgearbeit | Bewusst nicht Teil dieses Projekts                                                     |
 
 ---
 
@@ -105,7 +107,7 @@ Es wurden keine neuen Berechtigungsregeln eingeführt und keine bestehenden Rege
 
 Nach der Umsetzung wurde der neue Zustand deterministisch validiert.
 
-### Gezielt geprüfte relevante Integrationsbereiche
+### 5.1 Gezielt geprüfte relevante Integrationsbereiche
 
 * Authorization-Verhalten / Method Security
 * HTTP-Security-Pfade (`/public/**`, `/api/**`)
@@ -113,36 +115,174 @@ Nach der Umsetzung wurde der neue Zustand deterministisch validiert.
 * Security-Fehlerverhalten / Informationsleck-Schutz
 * Geschützte CRUD-/Assignment-Flows mit Admin-Token
 
-### Ergebnis
+### 5.2 Ergebnis der Regressionsprüfung
 
 * Relevante Einzeltests wurden erfolgreich ausgeführt.
 * Anschließend wurde die **gesamte Testsuite erfolgreich** ausgeführt.
 * Es wurden **keine Regressionen** festgestellt.
 
-### Bewertung
+### 5.3 Zusätzliche Stabilisierung in der Abschlussphase
 
-Die durch Sprint 7 geänderte Security-/Authorization-Struktur gilt damit innerhalb der IDM App als **stabil und regressionsfrei verifiziert**.
+Im Anschluss an die eigentliche Sprint-7-Umsetzung wurde in derselben Abschlussphase noch eine **abschließende Testarchitektur-Stabilisierung** durchgeführt.
+
+Auslöser war, dass die Tests zwar grundsätzlich grün waren, aber in der IDE (insbesondere bei vollständiger Ausführung über IntelliJ) zeitweise nicht mehr deterministisch denselben Zustand erreichten wie im Maven-Lauf.
+
+#### Identifizierte Ursache
+
+* Das `test`-Profil war im Ergebnis nicht mehr strikt genug von der Default-Konfiguration getrennt.
+* Dadurch konnte es zu einer **hybriden bzw. nicht vollständig überschriebenen Datasource-Konfiguration** kommen.
+* Zusätzlich waren einzelne Startup-/Bootstrap-Testfälle durch Spring-Context-Wiederverwendung empfindlich gegenüber Reihenfolgeeffekten.
+
+#### Durchgeführte Korrektur
+
+* `application-test.yml` wurde so korrigiert, dass die Test-Datasource wieder **vollständig und eindeutig** im Testprofil definiert ist.
+* Kritische Startup-/Bootstrap-Tests wurden so abgesichert, dass ihre Kontexte nicht ungewollt in nachfolgende Testklassen hineinwirken.
+* Die Testausführung wurde anschließend erneut sowohl einzeln als auch als Gesamtsuite validiert.
+
+#### Ergebnis
+
+* Maven-Lauf und IDE-Lauf verhalten sich wieder konsistent.
+* Die Tests sind im aktuellen Projektstand **deterministisch ausführbar**.
+* Der Abschlusszustand von Sprint 7 ist damit nicht nur funktional, sondern auch testtechnisch belastbar abgesichert.
+
+### 5.4 Bewertung
+
+Die durch Sprint 7 geänderte Security-/Authorization-Struktur gilt damit innerhalb der IDM App als:
+
+* **stabil**,
+* **regressionsfrei verifiziert**,
+* **deterministisch testbar**,
+* **für den Projektstand Sprint 7 formal freigabefähig**.
 
 ---
 
-## 6. Risiken und Restrisiken
+## 6. Fachlicher Leistungsumfang des IDM nach Sprint 7 (MVP-Zusammenfassung)
 
-### 6.1 Aktuell beherrschte Risiken
+Sprint 7 war selbst kein Fachsprint. Für die formale Abschlussphase wurde jedoch der aktuelle, nachweisbare MVP-Leistungsumfang des IDM nochmals überprüft.
 
-| Risiko                                  | Bewertung | Einordnung                                          |
-| --------------------------------------- | --------: | --------------------------------------------------- |
-| Security-Regression im Login-/JWT-Pfad  |   Niedrig | Durch Integrationstests und Gesamtsuite abgesichert |
-| Security-Regression bei Method Security |   Niedrig | Relevante Autorisierungstests grün                  |
-| Spring-Wiring / Bean-Auflösung          |   Niedrig | Nach Ergänzung der IDM-Implementierung stabil       |
-| Fachliche Verhaltensabweichung          |   Niedrig | Logik wurde extrahiert, nicht neu entworfen         |
+### 6.1 Als umgesetzt und MVP-relevant zu bewerten
 
-### 6.2 Verbleibende Restrisiken / Folgepunkte
+Im aktuellen Projektstand sind für das IDM-MVP nachweisbar:
+
+1. **Benutzer-Authentifizierung**
+
+    * Login über `/api/auth/login`
+    * gültiger Benutzer erhält JWT
+    * ungültige Zugangsdaten führen zu `401`
+
+2. **JWT-basierte Zugriffssicherung**
+
+    * geschützte Endpunkte erfordern gültige Authentifizierung
+    * ohne Token: `401`
+
+3. **IDM-interne Autorisierung im Self-Scope**
+
+    * `ApplicationScope` als Sicherheitskontext
+    * Rollen, Rechtegruppen und Einzelrechte
+    * Authority-/Permission-basierte Prüfung für IDM-eigene Funktionen
+
+4. **Deterministisches Bootstrapping**
+
+    * SAFE / FORCE / DISABLED
+    * Anlage von Admin-User, Self-Scope, Rollen-/Rechte-Basisbestand und Zuordnungen
+
+5. **Basis-Management-Funktionen**
+
+    * `ApplicationScope`-Verwaltung (CRUD)
+    * `UserAccount`-Basisverwaltung / mindestens Create-Flow im Management-Kontext
+
+### 6.2 Nicht Ziel dieses Abschlusses / bewusst noch nicht als vollständig breit ausgebaut
+
+Nicht als vollständig ausgebauter Fachumfang dieses MVP-Abschlusses zu werten sind insbesondere:
+
+* vollständige CRUD-Matrix für `Role`
+* vollständige CRUD-Matrix für `Permission`
+* vollständige CRUD-Matrix für `PermissionGroup`
+* vollständige API-seitige Breitenabsicherung aller Assignment-Ressourcen
+* Security-Hardening (z. B. Brute-Force-/Locking-Strategien)
+* vollständige Negativfall-Matrix für Validierungs- und Konfliktfälle
+
+### Einordnung
+
+Der Projektstand ist damit **MVP-fähig für Kern-Auth/AuthZ + Management-Basics**, aber bewusst noch **nicht produktionshart in allen Randbereichen**.
+
+---
+
+## 7. Bewertung der Testabdeckung (fachlich)
+
+### 7.1 Gut abgesicherte Kernbereiche
+
+Im aktuellen Projektstand sind für den MVP-Kern belastbar abgesichert:
+
+* positiver Login (`JWT` wird zurückgegeben)
+* negativer Login (`401` bei falschen Zugangsdaten)
+* Zugriff ohne Token (`401`)
+* Zugriff ohne Scope (`401`)
+* Zugriff ohne Rolle/Permission (`403`)
+* `ApplicationScope`-CRUD als Integrationsfluss
+* mindestens ein administrativer `UserAccount`-Create-Flow
+* Bootstrap-Verhalten (insbesondere SAFE/FORCE-Kontexte)
+
+### 7.2 Fachlich sinnvolle noch offene Testergänzungen
+
+Für einen breiter abgesicherten Folge-Stand werden empfohlen:
+
+1. **Systematische AuthZ-Testmatrix je Resource/Operation**
+
+    * je API mindestens `401` ohne Token
+    * `403` ohne Authority
+    * `200/201/204` mit Authority
+
+2. **Assignment-spezifische Fachtests**
+
+    * `UserApplicationScopeAssignment`
+    * `UserRoleAssignment`
+    * insbesondere Scope-Konsistenz und Cross-Scope-Verhalten
+
+3. **Negative Datenfälle**
+
+    * Duplicate Username
+    * Duplicate Scope-Schlüssel
+    * ungültige IDs
+    * Blank-/Null-Pflichtfelder
+    * Konfliktfälle bei Updates
+
+4. **Optionale Security-Randfälle**
+
+    * abgelaufenes Token
+    * manipuliertes Token
+    * ungültiger Bearer-Header
+
+### Einordnung
+
+Diese Lücken stellen **keinen Widerspruch zum Sprint-7-Abschluss** dar, sondern beschreiben den sachlich korrekten Zustand:
+
+* **MVP-Kern ausreichend abgesichert:** Ja
+* **vollständige breite Fach-Testmatrix bereits vorhanden:** Nein
+
+---
+
+## 8. Risiken und Restrisiken
+
+### 8.1 Aktuell beherrschte Risiken
+
+| Risiko                                  | Bewertung | Einordnung                                                                       |
+| --------------------------------------- | --------: | -------------------------------------------------------------------------------- |
+| Security-Regression im Login-/JWT-Pfad  |   Niedrig | Durch Integrationstests, Gesamtsuite und finalen IDE-/Maven-Abgleich abgesichert |
+| Security-Regression bei Method Security |   Niedrig | Relevante Autorisierungstests grün                                               |
+| Spring-Wiring / Bean-Auflösung          |   Niedrig | Nach Ergänzung der IDM-Implementierung stabil                                    |
+| Fachliche Verhaltensabweichung          |   Niedrig | Logik wurde extrahiert, nicht neu entworfen                                      |
+| Testinstabilität durch Profil-/DB-Mix   |   Niedrig | Durch Korrektur des `test`-Profils und erneute Validierung behoben               |
+
+### 8.2 Verbleibende Restrisiken / Folgepunkte
 
 | Thema                                                                              | Bewertung | Bedeutung                                                     |
 | ---------------------------------------------------------------------------------- | --------: | ------------------------------------------------------------- |
 | Mehrere `PermissionAuthoritySource`-Implementierungen in einer gemeinsamen Runtime |    Mittel | Bei späterer Integration weiterer Apps relevant               |
 | Selektionsstrategie für mehrere Domänen                                            |    Mittel | Für Personnel bzw. gemeinsame Kontexte zu klären              |
 | Vereinheitlichung von Package-/Namenskonventionen                                  |   Niedrig | Aktuell kein Blocker, nur späteres Ordnungs-/Governance-Thema |
+| Noch nicht vollständige AuthZ-Testmatrix über alle Ressourcen                      |   Niedrig | Kein Sprint-7-Blocker, aber sinnvoller Folgepunkt             |
+| Security-Hardening über MVP-Kern hinaus                                            |    Mittel | Vor externer Freigabe gesondert zu bewerten                   |
 
 ### Wichtigster Folgepunkt
 
@@ -159,9 +299,9 @@ Beispiele möglicher Strategien:
 
 ---
 
-## 7. Abweichungen / Nicht-Ziele
+## 9. Abweichungen / Nicht-Ziele
 
-### Keine fachlichen Erweiterungen
+### Keine fachlichen Erweiterungen durch Sprint 7 selbst
 
 Nicht Bestandteil von Sprint 7 waren insbesondere:
 
@@ -177,9 +317,13 @@ Die Übertragung des Musters auf die Personnel App ist **bewusst nicht Bestandte
 
 Dies ist kein offener Fehler, sondern eine **explizit geplante Folgearbeit außerhalb dieses Projekts**.
 
+### Kein neuer Fachsprint innerhalb des IDM-Projekts
+
+Die in der Abschlussphase ergänzten Aussagen zum MVP-Leistungsumfang und zur Testabdeckung sind **kein neuer Sprintinhalt**, sondern eine **abschließende Review- und Dokumentationsverdichtung** des bereits vorhandenen Projektzustands.
+
 ---
 
-## 8. Empfehlung für die Folgearbeit in der Personnel App
+## 10. Empfehlung für die Folgearbeit in der Personnel App
 
 Für die spätere Umsetzung in der Personnel App wird empfohlen:
 
@@ -197,19 +341,27 @@ Für die spätere Umsetzung in der Personnel App wird empfohlen:
     * Sprint 7 hat bewusst nur den notwendigen technischen Schnitt für IDM hergestellt.
     * Eine weitergehende Multi-Domain-Abstraktion sollte erst umgesetzt werden, wenn der reale Personnel-Kontext vollständig vorliegt.
 
+4. **Die im IDM identifizierten Testmuster früh systematisieren**
+
+    * AuthZ-Matrix pro Resource/Operation früh festlegen
+    * Assignment- und Cross-Scope-Fälle explizit absichern
+    * Testprofil strikt vollständig von Default-Konfiguration trennen
+
 ---
 
-## 9. Abschlussbewertung
+## 11. Abschlussbewertung
 
 ### Fachlich
 
 * Das bisherige Berechtigungsverhalten bleibt erhalten.
 * Es wurden keine fachlichen Regressionen festgestellt.
+* Der aktuelle IDM-Stand ist **MVP-fähig für Kern-Auth/AuthZ + Management-Basics**.
 
 ### Technisch
 
 * Die generische Security-Infrastruktur wurde sauber von IDM entkoppelt.
 * Die Lösung ist klarer, wartbarer und für die nächste Ausbaustufe besser vorbereitbar.
+* Die Testarchitektur wurde in der Abschlussphase nochmals stabilisiert und ist im aktuellen Zustand deterministisch belastbar.
 
 ### Projektbezogen
 
@@ -219,7 +371,7 @@ Für die spätere Umsetzung in der Personnel App wird empfohlen:
 
 ---
 
-## 10. Formale Entscheidung
+## 12. Formale Entscheidung
 
 **Sprint 7 wird für das IDM-Projekt als abgeschlossen freigegeben.**
 
@@ -227,6 +379,7 @@ Die Umsetzung gilt als:
 
 * **deterministisch durchgeführt**,
 * **regressionsfrei verifiziert**,
+* **testarchitektonisch stabilisiert**,
 * **technisch sauber abgeschlossen**.
 
 Die nächste fachlich zusammenhängende Weiterentwicklung erfolgt **außerhalb dieses Projekts** in der Personnel App.

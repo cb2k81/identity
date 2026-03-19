@@ -28,11 +28,48 @@
             <systemProtected>true</systemProtected>
         </permission>
 
-        <!-- Permissions -->
+        <!-- Permissions / Roles -->
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_CREATE</name>
+            <description>Create roles</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_READ</name>
+            <description>Read roles</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_UPDATE</name>
+            <description>Update roles</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_ROLE_DELETE</name>
+            <description>Delete roles</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+
         <permission>
             <permissionGroupName>IDM_PERMISSION</permissionGroupName>
             <name>IDM_PERMISSION_CREATE</name>
-            <description>Create permission groups and permissions</description>
+            <description>Create permissions</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_READ</name>
+            <description>Read permissions</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
+            <name>IDM_PERMISSION_UPDATE</name>
+            <description>Update permissions</description>
             <systemProtected>true</systemProtected>
         </permission>
         <permission>
@@ -42,27 +79,6 @@
             <systemProtected>true</systemProtected>
         </permission>
 
-        <!-- Roles -->
-        <permission>
-            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
-            <name>IDM_ROLE_CREATE</name>
-            <description>Create roles</description>
-            <systemProtected>true</systemProtected>
-        </permission>
-        <permission>
-            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
-            <name>IDM_ROLE_DELETE</name>
-            <description>Delete roles</description>
-            <systemProtected>true</systemProtected>
-        </permission>
-        <permission>
-            <permissionGroupName>IDM_PERMISSION</permissionGroupName>
-            <name>IDM_ROLE_READ</name>
-            <description>Read roles</description>
-            <systemProtected>true</systemProtected>
-        </permission>
-
-        <!-- Assignments -->
         <permission>
             <permissionGroupName>IDM_PERMISSION</permissionGroupName>
             <name>IDM_ROLE_PERMISSION_ASSIGN</name>
@@ -75,6 +91,8 @@
             <description>Unassign permissions from roles</description>
             <systemProtected>true</systemProtected>
         </permission>
+
+        <!-- Users -->
         <permission>
             <permissionGroupName>IDM_USER</permissionGroupName>
             <name>IDM_USER_CREATE</name>
@@ -110,6 +128,18 @@
             <permissionGroupName>IDM_USER</permissionGroupName>
             <name>IDM_USER_ROLE_UNASSIGN</name>
             <description>Unassign roles from users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_SCOPE_ASSIGN</name>
+            <description>Assign application scopes to users</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_SCOPE_UNASSIGN</name>
+            <description>Unassign application scopes from users</description>
             <systemProtected>true</systemProtected>
         </permission>
 

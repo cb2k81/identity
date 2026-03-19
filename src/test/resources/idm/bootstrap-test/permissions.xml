@@ -130,6 +130,18 @@
             <description>Unassign roles from users (from test resources)</description>
             <systemProtected>true</systemProtected>
         </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_SCOPE_ASSIGN</name>
+            <description>Assign application scopes to users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
+        <permission>
+            <permissionGroupName>IDM_USER</permissionGroupName>
+            <name>IDM_USER_SCOPE_UNASSIGN</name>
+            <description>Unassign application scopes from users (from test resources)</description>
+            <systemProtected>true</systemProtected>
+        </permission>
 
     </items>
 </permissions>

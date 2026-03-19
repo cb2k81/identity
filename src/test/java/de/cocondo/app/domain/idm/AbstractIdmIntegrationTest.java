@@ -13,6 +13,7 @@ import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.notNullValue;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -81,6 +82,17 @@ public abstract class AbstractIdmIntegrationTest {
                 .getResponse()
                 .getContentAsString();
 
-        return objectMapper.readTree(response).get("token").asText();
+        String token = objectMapper.readTree(response).get("token").asText();
+
+        // Früher Smoke-Guard:
+        // Ein erfolgreicher Admin-Login allein reicht nicht aus.
+        // Der Token muss im Self-Scope auch tatsächlich Management-Zugriff haben.
+        mockMvc.perform(
+                        get("/api/idm/roles")
+                                .header("Authorization", "Bearer " + token)
+                )
+                .andExpect(status().isOk());
+
+        return token;
     }
 }

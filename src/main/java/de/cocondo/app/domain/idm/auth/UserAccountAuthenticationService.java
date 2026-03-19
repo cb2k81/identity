@@ -1,6 +1,7 @@
 package de.cocondo.app.domain.idm.auth;
 
 import de.cocondo.app.domain.idm.assignment.UserApplicationScopeAssignmentEntityService;
+import de.cocondo.app.domain.idm.assignment.UserRoleAssignment;
 import de.cocondo.app.domain.idm.assignment.UserRoleAssignmentEntityService;
 import de.cocondo.app.domain.idm.config.IdmSecurityProperties;
 import de.cocondo.app.domain.idm.role.Role;
@@ -110,15 +111,54 @@ public class UserAccountAuthenticationService {
             throw new InvalidCredentialsException();
         }
 
-        List<String> roles = userRoleAssignmentEntityService
-                .loadAllByUserAccountId(user.getId())
-                .stream()
-                .map(a -> a.getRole())
-                .filter(r -> r.getApplicationScope().getId().equals(scope.getId()))
+        List<UserRoleAssignment> assignments = userRoleAssignmentEntityService.loadAllByUserAccountId(user.getId());
+
+        log.info(
+                "Authentication role resolution start: userId={}, username={}, requestedScope=({},{}) scopeId={}, assignmentCount={}",
+                user.getId(),
+                user.getUsername(),
+                scope.getApplicationKey(),
+                scope.getStageKey(),
+                scope.getId(),
+                assignments.size()
+        );
+
+        assignments.forEach(assignment -> {
+            Role role = assignment.getRole();
+            ApplicationScope roleScope = role != null ? role.getApplicationScope() : null;
+
+            log.info(
+                    "Authentication assignment candidate: userId={}, username={}, assignmentId={}, roleId={}, roleName={}, roleScopeId={}, roleScope=({},{})",
+                    user.getId(),
+                    user.getUsername(),
+                    assignment.getId(),
+                    role != null ? role.getId() : null,
+                    role != null ? role.getName() : null,
+                    roleScope != null ? roleScope.getId() : null,
+                    roleScope != null ? roleScope.getApplicationKey() : null,
+                    roleScope != null ? roleScope.getStageKey() : null
+            );
+        });
+
+        List<String> roles = assignments.stream()
+                .map(UserRoleAssignment::getRole)
+                .filter(role -> role != null && role.getApplicationScope() != null)
+                .filter(role -> scope.getApplicationKey().equals(role.getApplicationScope().getApplicationKey()))
+                .filter(role -> scope.getStageKey().equals(role.getApplicationScope().getStageKey()))
                 .map(Role::getName)
                 .distinct()
                 .sorted()
                 .toList();
+
+        log.info(
+                "Authentication role resolution result: userId={}, username={}, requestedScope=({},{}) scopeId={}, roles={}",
+                user.getId(),
+                user.getUsername(),
+                scope.getApplicationKey(),
+                scope.getStageKey(),
+                scope.getId(),
+                roles
+        );
 
         AuthenticatedUserDTO dto = new AuthenticatedUserDTO();
         dto.setId(user.getId());
@@ -127,11 +167,14 @@ public class UserAccountAuthenticationService {
         dto.setStageKey(scope.getStageKey());
         dto.setRoles(roles);
 
-        log.info("User authenticated: userId={}, username={}, scope={}/{}",
-                user.getId(),
-                user.getUsername(),
-                scope.getApplicationKey(),
-                scope.getStageKey());
+        log.info(
+                "User authenticated: userId={}, username={}, scope={}/{}, roles={}",
+                dto.getId(),
+                dto.getUsername(),
+                dto.getApplicationKey(),
+                dto.getStageKey(),
+                dto.getRoles()
+        );
 
         return dto;
     }
