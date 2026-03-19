@@ -1,365 +1,597 @@
-# Technisches Implementierungskonzept – IDM Service
+# Identity Management (IDM) Service – Technisches Implementierungskonzept
+**Version:** 2
+**Datum:** 19.03.2026
+
+---
 
 ## 1. Einordnung und Zielsetzung
 
-Dieses technische Implementierungskonzept definiert die verbindlichen Architektur‑, Security‑ und Implementierungsregeln für den **Identity Management (IDM) Service**. Es ergänzt das vorhandene Fachkonzept und bildet gemeinsam mit diesem die maßgebliche Grundlage für den Projektstart sowie für eine konsistente, deterministische Umsetzung.
+Dieses technische Implementierungskonzept definiert die verbindlichen Architektur-, Security- und Implementierungsregeln für den **Identity Management (IDM) Service**. Es ergänzt das Fachkonzept und bildet gemeinsam mit diesem die maßgebliche Grundlage für eine konsistente, deterministische Umsetzung.
 
-Der IDM Service wird als **Spring‑Boot‑basiertes Backend‑System** umgesetzt und stellt die im Fachkonzept definierten **REST‑Schnittstellen** bereit. Ein Web‑Client ist **nicht Bestandteil** dieses Projekts und wird als eigenständiges, entkoppeltes Produkt betrachtet.
+Der IDM Service wird als **Spring-Boot-basiertes Backend-System** umgesetzt und stellt die im Fachkonzept definierten REST-Schnittstellen bereit. Ein Web-Client ist **nicht Bestandteil** dieses Projekts. Der **GWC** wird als eigenständiges, entkoppeltes Frontend-Projekt betrachtet und konsumiert die IDM-APIs.
 
-Der Projekt‑Scope umfasst:
+Der aktuelle, belastbar nachweisbare Baseline-Stand des Projekts umfasst insbesondere:
+
+* Spring Boot 3.x / Java 17+
+* monolithische, schichtenbasierte Backend-Architektur
+* JWT-basierte Authentifizierung
+* persistentes Rollen-, Permission- und Scope-Modell
+* deterministisches Bootstrap auf XML-Basis
+* produktiv nutzbare Basis-Endpunkte für Login und Current Auth Context
+
+Der Projekt-Scope dieses Dokuments umfasst:
 
 * Implementierung der fachlichen Aggregate und Services
-* Bereitstellung versionierter REST‑APIs
+* Bereitstellung konsistenter REST-APIs
 * Security (Authentifizierung, Autorisierung, JWT)
 * Persistenz, Auditierung und Fehlermanagement
+* deterministische Initialisierung sicherheitsrelevanter Stammdaten
 
 Nicht Bestandteil:
 
-* Frontend / Web‑Client
-* Externe IAM‑Integrationen (z. B. LDAP, OAuth Provider), sofern nicht explizit beauftragt
+* Frontend / Web-Client
+* vollständiger OAuth2/OIDC Authorization Server
+* externe IAM-Integrationen (z. B. LDAP, Keycloak, Entra), sofern nicht explizit beauftragt
 
 ---
 
 ## 2. Laufzeit- und Betriebsmodell
 
-Das Laufzeit- und Betriebsmodell des IDM Service ist auf einen stabilen, skalierbaren und möglichst einfachen Betrieb ausgerichtet. Die Anwendung wird als **eigenständig lauffähiges Spring-Boot-JAR** ausgeliefert und nutzt einen embedded Webserver. Dadurch ist kein separater Applikationsserver erforderlich, was den Betrieb vereinfacht und die Portabilität zwischen unterschiedlichen Umgebungen erhöht.
+Das Laufzeit- und Betriebsmodell des IDM Service ist auf einen stabilen, skalierbaren und bewusst einfachen Betrieb ausgerichtet.
 
-Der IDM Service folgt konsequent einem **stateless Architekturansatz**. Es werden keine serverseitigen HTTP-Sessions verwendet. Alle für die Verarbeitung eines Requests notwendigen Informationen werden entweder im Request selbst oder über valide Security-Tokens bereitgestellt. Dieser Ansatz ist eine wesentliche Voraussetzung für horizontale Skalierung und einen robusten Betrieb in containerisierten Umgebungen.
+* Die Anwendung wird als **eigenständig lauffähiges Spring-Boot-JAR** ausgeliefert.
+* Ein embedded Webserver wird verwendet; ein separater Applikationsserver ist nicht erforderlich.
+* Die Zielumgebung ist containerfähig und Kubernetes-tauglich.
+* Die Konfiguration erfolgt umgebungsgetrieben über `application.yml`, Profile, Environment-Variablen und Secrets.
 
-Die Anwendung ist von Beginn an **containerfähig** konzipiert und kann in modernen Plattformen wie Kubernetes betrieben werden. Aspekte wie schnelle Startzeiten, klare Health-Endpunkte und externe Konfiguration sind integraler Bestandteil des Betriebsmodells und keine nachträglichen Ergänzungen.
+### 2.1 Aktueller Baseline-Stand
 
-### 2.1 Profile und Konfiguration
+Der aktuelle Projektstand umfasst unter anderem:
 
-Für unterschiedliche Einsatzszenarien werden klar abgegrenzte Spring-Profile verwendet. Diese ermöglichen eine saubere Trennung von Entwicklungs‑, Test‑ und Produktionskonfigurationen, ohne dass Code angepasst werden muss.
+* konfigurierten Server-Port
+* Health-/Info-Exposure via Actuator
+* öffentlich erreichbaren Login-Endpunkt auf `/auth/login`
+* JWT-Konfiguration über Secret und TTL
+* Bootstrap-Konfiguration über `idm.bootstrap.*`
+* testprofilbasierte H2-Nutzung
+* konfigurierbaren Login-Schutz
 
-Es existieren die Profile:
+Damit ist der technische Kern für einen leichtgewichtigen, produktiv nutzbaren Identity-Service bereits vorhanden.
+
+### 2.2 Betriebsprinzip
+
+* **Stateless im HTTP-Sinne**: keine serverseitigen HTTP-Sessions.
+* **Stateful nur dort, wo fachlich nötig**: Persistenz von User-, Rollen-, Scope- und perspektivisch Session-/Refresh-Metadaten.
+* **Horizontal skalierbar**: mehrere Instanzen sind möglich, sofern zustandsbehaftete Informationen nicht lokal im Prozess verbleiben.
+
+### 2.3 Profile und Konfiguration
+
+Es existieren klar abgegrenzte Profile für Entwicklung, Test und Produktion.
 
 * `dev` für lokale Entwicklung
 * `test` für automatisierte Tests und Integrationsumgebungen
-* `prod` für den Produktivbetrieb
+* `prod` bzw. produktive Default-Konfiguration für den Realbetrieb
 
-Die Konfigurationskonventionen sind verbindlich festgelegt:
+Verbindliche Konfigurationsregeln:
 
-* Die Datei `application.yml` repräsentiert das produktive Default-Profil und wird auch im Pod- bzw. Containerbetrieb verwendet.
-* Environmentspezifische Abweichungen werden über `application-dev.yml` und `application-test.yml` definiert.
-* Sensible Konfigurationswerte wie Zugangsdaten, Schlüssel oder Secrets werden **ausschließlich** über Environment-Variablen oder dedizierte Secret-Mechanismen bereitgestellt und niemals im Repository abgelegt.
+* `application.yml` enthält den produktionsnahen Default-Stand.
+* Profilbezogene Abweichungen werden über ergänzende Profil-Dateien definiert.
+* Secrets, Credentials und Schlüssel dürfen nicht im Repository hardcodiert werden.
+* Sicherheitsrelevante Parameter wie JWT-Secret, TTL, Login-Protection und Bootstrap-Modus müssen konfigurationsgetrieben bleiben.
 
 ---
 
-## 3. Technische Basis
+## 3. Technologie-Stack und technische Leitplanken
 
-Die technische Basis des IDM Service ist bewusst konservativ, stabil und langfristig wartbar gewählt. Ziel ist es, auf etablierte Technologien zu setzen, die gut unterstützt sind und eine verlässliche Grundlage für den Betrieb eines sicherheitskritischen Kernsystems bieten.
+### 3.1 Verbindlicher Stack
 
-### 3.1 Plattform und Frameworks
+* **Java 17+**
+* **Spring Boot 3.x**
+* **Spring Web / Spring MVC**
+* **Spring Security**
+* **Spring Data JPA / Hibernate**
+* **MariaDB** als primäre Ziel-Datenbank
+* **H2** für Tests
+* **Maven** als Build-System
+* **Lombok** zur Boilerplate-Reduktion
+* **Liquibase** als Zielstandard für DB-Migrationen
+* **Actuator** für Health/Info
 
-Der IDM Service wird auf **Java 22** betrieben und nutzt **Spring Boot 3.3.10** als zentrales Anwendungsframework. Spring Boot stellt die notwendigen Bausteine für Web‑APIs, Security, Persistenz, Konfiguration und Observability in integrierter Form bereit und ermöglicht eine konsistente Projektstruktur.
+### 3.2 Ergänzende Bibliotheken / Standards
 
-Der Build erfolgt mit **Maven 3**, wodurch ein reproduzierbarer und standardisierter Build‑Prozess gewährleistet ist. Für Persistenz und ORM wird **Spring Data JPA mit Hibernate** eingesetzt, ergänzt durch **MariaDB** als relationale Datenbank. Schema‑Versionierung und Migrationen werden über **Liquibase** realisiert, um kontrollierte und nachvollziehbare Datenbankänderungen sicherzustellen.
+* **Jakarta Bean Validation** für Request-Validierung
+* **Jackson** für JSON-Serialisierung
+* **MapStruct** oder funktional äquivalente Compile-Time-Mapping-Lösung
+* **JJWT** oder äquivalente, aktiv gepflegte JWT-Bibliothek
+* optional später: **Micrometer**, **Resilience4j**, zusätzliche Security-Scanner
 
-Querschnittliche technische Anforderungen werden durch etablierte Bibliotheken abgedeckt, darunter **SLF4J/Logback** für Logging, **Lombok** zur Reduktion von Boilerplate‑Code, **JUnit und Spring Test** für automatisierte Tests sowie **Swagger/OpenAPI** zur Dokumentation der REST‑Schnittstellen.
+### 3.3 Leichtgewichts-Prinzip
 
-### 3.2 Ergänzende Libraries und Versionsstrategie
+Technische Entscheidungen folgen dem Prinzip:
 
-Ergänzend zur Kernplattform können weitere Libraries und Tools eingesetzt werden, sofern sie die funktionalen Anforderungen des IDM Service sinnvoll unterstützen, mit Spring Boot 3.x kompatibel sind und keine unnötigen Abhängigkeiten oder Vendor-Lock-ins einführen.
+* produktiv belastbar,
+* klar verständlich,
+* deterministisch umsetzbar,
+* ohne unnötigen IAM-Overhead.
 
-Für die **Datenvalidierung** wird Bean Validation (Jakarta Validation) verwendet, das bereits integraler Bestandteil des Spring-Ökosystems ist und eine einheitliche Validierung von Eingabedaten ermöglicht. Dadurch werden formale Fehler frühzeitig erkannt und konsistent behandelt.
+Das bedeutet insbesondere:
 
-Für das **Mapping zwischen DTOs und Domain-Entities** kann MapStruct eingesetzt werden. MapStruct ermöglicht typsicheres, performantes Mapping zur Compile-Zeit und vermeidet reflektionsbasierte Lösungen, was insbesondere in sicherheitskritischen Kernsystemen von Vorteil ist.
-
-Zur **Erzeugung und Validierung von JSON Web Tokens** kann eine etablierte JWT-Bibliothek wie JJWT verwendet werden. Die Auswahl erfolgt unter dem Aspekt langfristiger Wartbarkeit, aktiver Pflege und Kompatibilität mit aktuellen Java- und Spring-Versionen.
-
-Für **JSON-Verarbeitung und Serialisierung** wird Jackson eingesetzt. Jackson ist Bestandteil des Spring-Boot-Stacks und erlaubt eine flexible Anpassung der Serialisierung, beispielsweise für Versionierung, Custom Deserializer oder Security-relevante Maskierungen.
-
-Zur **Resilienz und Fehlerrobustheit** kann perspektivisch der Einsatz von Resilience4j vorgesehen werden, etwa für Timeouts, Circuit Breaker oder Bulkheads bei internen oder externen Abhängigkeiten. Der Einsatz ist optional und erfolgt nur bei konkretem Bedarf.
-
-Für **Observability und Metriken** wird primär auf die durch Spring Boot Actuator bereitgestellten Mechanismen gesetzt. Eine spätere Erweiterung um Micrometer als Metrik-Fassade ist vorgesehen, da Micrometer integraler Bestandteil des Spring-Ökosystems ist und eine nahtlose Anbindung an Monitoring-Backends ermöglicht.
-
-Alle Abhängigkeiten werden zentral in der `pom.xml` verwaltet. Das Versionsmanagement orientiert sich primär am **Spring-Boot-BOM**, um kompatible Abhängigkeitsversionen sicherzustellen. Darüber hinaus werden möglichst aktuelle, stabile Versionen verwendet.
-
-Spring Boot 3.x wird bewusst beibehalten, da ein erheblicher Teil des eingesetzten Ökosystems zum aktuellen Zeitpunkt noch nicht vollständig mit Spring Boot 4 kompatibel ist. Diese Entscheidung stellt Stabilität und Planbarkeit gegenüber einem frühzeitigen Technologiewechsel in den Vordergrund.
+* keine vorschnelle Einführung komplexer OAuth2-/OIDC-Provider-Mechanismen,
+* keine verteilte Security-Infrastruktur ohne realen Bedarf,
+* klare Trennung zwischen **Baseline/MVP-Kern** und **nächster produktiver Härtungsstufe**.
 
 ---
 
 ## 4. Architekturprinzipien
 
-Die Architektur des IDM Service ist bewusst so gestaltet, dass sie Fachlichkeit, technische Stabilität und Erweiterbarkeit miteinander verbindet. Ziel ist eine Struktur, die fachliche Änderungen isoliert erlaubt, technische Querschnittsthemen klar verortet und gleichzeitig eine deterministische Implementierung ohne implizite Abhängigkeiten ermöglicht.
+Die Architektur des IDM Service ist bewusst so gestaltet, dass Fachlichkeit, technische Stabilität und Erweiterbarkeit sauber getrennt bleiben.
 
-Zentrales Leitprinzip ist die **Trennung von Verantwortlichkeiten entlang fachlicher und technischer Grenzen**. Jede Schicht besitzt eine klar definierte Aufgabe und darf ausschließlich mit den direkt benachbarten Schichten interagieren. Dadurch wird verhindert, dass sich fachliche Logik, technische Infrastruktur und Präsentationsaspekte unkontrolliert vermischen.
+Zentrales Leitprinzip ist die **Trennung von Verantwortlichkeiten entlang fachlicher und technischer Grenzen**. Jede Schicht besitzt eine klar definierte Aufgabe und darf ausschließlich mit den zulässigen Nachbarschichten interagieren.
 
 ### 4.1 Schichtenarchitektur und Zusammenspiel
 
-Der **Web- bzw. Controller-Layer** bildet den äußeren Einstiegspunkt in die Anwendung. Er stellt ausschließlich die technischen REST-Endpunkte bereit und ist verantwortlich für Request- und Response-Verarbeitung, Parameterbindung sowie formale Validierung der Eingaben. Fachliche Entscheidungen werden hier bewusst nicht getroffen. Diese strikte Beschränkung stellt sicher, dass Controller einfach testbar bleiben und sich Änderungen an der Fachlogik nicht auf die API-Schicht auswirken.
+#### Web-/Controller-Layer
 
-Der **API-Layer (Application Facades)** bildet die zentrale Integrations- und Orchestrierungsschicht der Anwendung. In dieser Schicht werden fachliche Use-Cases umgesetzt, indem mehrere Domain-Services koordiniert werden. Gleichzeitig erfolgt hier das Mapping zwischen externen DTOs und internen Domain-Entities. Ein wesentlicher Aspekt dieser Schicht ist die Durchsetzung der Endbenutzer-Autorisierung sowie die Definition der Transaktionsgrenzen. Dadurch wird sichergestellt, dass fachliche Operationen atomar, konsistent und sicher ausgeführt werden. Der API-Layer fungiert damit als stabiler Schutzschirm zwischen externer API und internem Fachmodell.
+* technische REST-Endpunkte
+* Request-/Response-Verarbeitung
+* Parameterbindung und formale Validierung
+* keine fachlichen Entscheidungen
 
-Der **Domain-Layer** stellt den fachlichen Kern der Anwendung dar. Er ist konsequent nach den Prinzipien des Domain Driven Design aufgebaut. Aggregate Roots kapseln den konsistenten Zustand eines fachlichen Kontexts und stellen die einzigen erlaubten Zugriffspunkte für Änderungen dar. Domain Services enthalten fachliche Logik, die nicht sinnvoll einem einzelnen Aggregate zugeordnet werden kann. Diese Schicht arbeitet ausschließlich mit Entities und kennt weder DTOs noch technische Aspekte wie HTTP, Security oder Persistenzdetails. Durch diese Isolation bleibt das Fachmodell langlebig und unabhängig von technologischen Änderungen.
+#### API-/Application-Layer
 
-Der **Persistence-Layer** ist für die Speicherung und das Laden von Aggregaten verantwortlich. Er basiert auf JPA/Hibernate und stellt Repositories ausschließlich für Aggregate Roots bereit. Die Persistenzschicht enthält keinerlei Fachlogik, sondern dient ausschließlich der technischen Umsetzung der Datenhaltung. Diese klare Trennung verhindert, dass fachliche Regeln unbemerkt in Datenzugriffsschichten abwandern.
+* Orchestrierung fachlicher Use Cases
+* Transaktionsgrenzen
+* Mapping zwischen DTOs und Domain-Objekten
+* Durchsetzung von Endbenutzer-Autorisierung auf Use-Case-Ebene
 
-Der **Security-Layer** ist als querschnittliche technische Schicht ausgeprägt. Er stellt Mechanismen für Authentifizierung, Autorisierung und Method Security bereit und wird sowohl vom Web- als auch vom API-Layer genutzt. Fachliche Entscheidungen über Berechtigungen werden nicht im Domain-Layer getroffen, sondern explizit an den Schnittstellen zur Außenwelt durchgesetzt. Dadurch bleibt das Fachmodell frei von sicherheitstechnischen Abhängigkeiten.
+#### Domain-Layer
 
-### 4.2 Architektonische Leitentscheidungen
+* fachliche Aggregate
+* fachliche Regeln und Konsistenz
+* keine Kenntnis von Web/API-Details
 
-Die Kombination aus Schichtenarchitektur und DDD-orientiertem Domain-Modell verfolgt mehrere Ziele gleichzeitig:
+#### Persistence-Layer
 
-* **Determinismus:** Jeder fachliche Use-Case folgt einem klaren Ausführungspfad vom Controller über den API-Layer in den Domain-Layer und zurück.
-* **Testbarkeit:** Fachliche Logik kann isoliert getestet werden, ohne Spring-Kontext oder Infrastrukturabhängigkeiten.
-* **Wartbarkeit:** Änderungen an API, Security oder Persistenz haben keine unmittelbaren Auswirkungen auf das Fachmodell.
-* **Erweiterbarkeit:** Neue Use-Cases oder technische Querschnittsthemen (z. B. Observability, zusätzliche Security-Mechanismen) können ergänzt werden, ohne bestehende Strukturen aufzubrechen.
+* Repositories und Persistenzadapter
+* keine fachliche Orchestrierung
 
-Diese Architektur stellt sicher, dass der IDM Service langfristig stabil bleibt und gleichzeitig flexibel genug ist, um zukünftige Anforderungen oder Integrationen aufzunehmen.
+#### System-/Security-Layer
 
----
+* technischer Shared Kernel
+* JWT-Validierung
+* Authentifizierungs- und Autorisierungs-Infrastruktur
+* keine fachlichen Abhängigkeiten in Richtung Domain
 
-## 5. Domain Driven Design (DDD)
+### 4.2 Verbindliche Abhängigkeitsregeln
 
-Der IDM Service folgt bewusst den Prinzipien des **Domain Driven Design**, um die fachliche Komplexität des Identitäts‑ und Berechtigungsmanagements beherrschbar und langfristig wartbar zu halten. Ziel ist es, das Fachmodell klar von technischen Aspekten zu trennen und fachliche Regeln explizit und nachvollziehbar im Code abzubilden.
+Die Architektur folgt der bereits etablierten Shared-Kernel-Regel:
 
-Im Mittelpunkt steht dabei nicht die technische Struktur der Anwendung, sondern die fachliche Konsistenz der Domäne. Das Domain‑Modell bildet die Begriffe, Regeln und Invarianten des Fachkonzepts direkt ab und dient als verbindliche Grundlage für alle fachlichen Operationen.
+```text
+web         → domain
+web         → system (nur technische Aspekte)
 
-### 5.1 Aggregate und fachliche Konsistenz
+domain      → system
 
-Jeder fachliche Teilbereich wird durch ein **Aggregate** repräsentiert, das einen klar abgegrenzten Konsistenzrahmen bildet. Das **Aggregate Root** fungiert dabei als einziger erlaubter Zugriffspunkt für Änderungen am internen Zustand. Diese Entscheidung stellt sicher, dass fachliche Invarianten jederzeit eingehalten werden und Änderungen nicht unkontrolliert über mehrere Objekte hinweg erfolgen.
+persistence → domain
+persistence → system
 
-Repositories existieren ausschließlich für Aggregate Roots. Zugehörige Entitäten (Parts) sind dem jeweiligen Aggregate eindeutig untergeordnet und dürfen weder direkt geladen noch außerhalb des Roots verändert werden. Dadurch wird verhindert, dass fachliche Regeln umgangen oder inkonsistente Zustände erzeugt werden.
-
-Typische Aggregate Roots im IDM‑Kontext sind beispielsweise UserAccount, Person, Role oder Scope. Sie spiegeln jeweils einen eigenständigen fachlichen Verantwortungsbereich wider und sind so zugeschnitten, dass sie unabhängig voneinander weiterentwickelt werden können.
-
-### 5.2 Domain Services und fachliche Logik
-
-Nicht jede fachliche Operation lässt sich sinnvoll einem einzelnen Aggregate zuordnen. Für solche Fälle werden **Domain Services** eingesetzt. Diese kapseln fachliche Logik, die mehrere Aggregate betrifft oder keinen natürlichen Besitzer im Datenmodell hat.
-
-Domain Services arbeiten ausschließlich mit Entities und Value Objects und sind vollständig frei von technischen Abhängigkeiten. Sie kennen weder DTOs noch Persistenz‑ oder Security‑Mechanismen. Dadurch bleiben sie leicht testbar und fachlich eindeutig.
-
-Die Aufrufe der Domain Services erfolgen stets über den API Layer. Dieser stellt sicher, dass fachliche Operationen in einem klar definierten Kontext ausgeführt werden und nicht unkontrolliert aus technischen Schichten heraus angestoßen werden.
-
-### 5.3 Transaktionsmodell im DDD‑Kontext
-
-Das Transaktionsmanagement ist bewusst **nicht** Bestandteil des Domain‑Layers. Domain Services sind transaktionslos und formulieren ausschließlich fachliche Regeln und Zustandsänderungen.
-
-Die Verantwortung für Transaktionen liegt im **API Layer (Application Facades)**. Dort wird pro fachlichem Use‑Case genau eine Transaktion gestartet, innerhalb derer alle beteiligten Domain Services und Aggregate konsistent ausgeführt werden. Dieses Modell stellt sicher, dass fachliche Operationen atomar sind und entweder vollständig oder gar nicht wirksam werden.
-
-Rollback‑Regeln orientieren sich an Runtime Exceptions. Fachliche Fehler werden explizit über Domain‑spezifische Exceptions signalisiert und vom API Layer in konsistente HTTP‑Antworten übersetzt.
-
----
-
-## 6. Datenmodell und Persistenz
-
-Das Datenmodell des IDM Service ist eng an das fachliche Domain‑Modell gekoppelt, bleibt jedoch bewusst auf seine technische Aufgabe beschränkt: die zuverlässige und konsistente Persistenz des fachlichen Zustands. Fachliche Logik oder Validierungsregeln sind nicht Bestandteil der Persistenzschicht.
-
-### 6.1 Identitäten und Lebenszyklus von Entities
-
-Alle fachlichen Entities erhalten **frühzeitig im Erstellungsprozess eine UUID** als technische Identität. Die UUID wird applikationsseitig erzeugt und bleibt über den gesamten Lebenszyklus der Entity stabil. Diese Entscheidung stellt sicher, dass Objekte eindeutig identifizierbar sind, auch bevor sie persistiert wurden, und erleichtert die Korrelation von Audit‑Logs, Events und API‑Antworten.
-
-Die Persistenz der UUID erfolgt einheitlich entweder als nativer UUID‑Typ oder als String. Die konkrete technische Ausprägung wird einmalig festgelegt und konsequent im gesamten Datenmodell angewendet.
-
-### 6.2 Modellierungsregeln und Vererbung
-
-Bei der Modellierung der JPA Entities wird bewusst auf Vererbung verzichtet. Erfahrungsgemäß führt Entity‑Vererbung häufig zu komplexen Mapping‑Strukturen, eingeschränkter Erweiterbarkeit und schwer nachvollziehbaren Performance‑Effekten.
-
-Stattdessen werden fachliche Beziehungen explizit über Relationen modelliert. Dies erhöht die Transparenz des Datenmodells, erleichtert spätere Anpassungen und sorgt für eine klare Abbildung der fachlichen Zusammenhänge.
-
-### 6.3 Persistenzzugriff und Repositories
-
-Repositories stellen den technischen Zugriff auf die Datenbank dar und sind ausschließlich für Aggregate Roots definiert. Sie dienen dem Laden, Speichern und Löschen vollständiger Aggregate. Feingranulare fachliche Abfragen oder Zustandsänderungen einzelner Parts außerhalb des Aggregate‑Kontexts sind nicht vorgesehen.
-
-Diese Beschränkung stellt sicher, dass alle Änderungen am Datenmodell über den fachlich definierten Weg erfolgen und das Domain‑Modell die alleinige Quelle der Wahrheit für fachliche Regeln bleibt.
-
-### 6.4 Schema‑Migrationen mit Liquibase
-
-Datenbankschemata werden ausschließlich über **Liquibase** versioniert und migriert. Jede fachliche Änderung am Datenmodell wird durch einen eigenen, nachvollziehbaren Changelog repräsentiert. Migrationen laufen konsistent in allen Profilen (dev, test, prod), sodass Abweichungen zwischen Umgebungen vermieden werden.
-
-Initiale Seed‑Daten, wie Scopes, Basis‑Rollen und Permissions, werden ebenfalls über Liquibase eingespielt. Dadurch ist sichergestellt, dass jede Umgebung einen definierten, reproduzierbaren Ausgangszustand besitzt.
-
----
-
-## 7. Security-Konzept
-
-Das Security-Konzept des IDM Service ist darauf ausgelegt, fachliche Sicherheit, technische Robustheit und Erweiterbarkeit miteinander zu verbinden. Security wird dabei als **zentrales Querschnittsthema** verstanden, das konsequent an den Schnittstellen zur Außenwelt durchgesetzt wird, ohne das Fachmodell selbst mit sicherheitstechnischen Details zu belasten.
-
-Ziel ist es, eine klare Trennung zwischen **Authentifizierung**, **Autorisierung** und fachlicher Logik zu erreichen. Dadurch bleibt das Domain-Modell unabhängig, testbar und langfristig stabil, während sicherheitsrelevante Entscheidungen explizit und nachvollziehbar an definierten Stellen getroffen werden.
-
-### 7.1 Authentifizierung
-
-Die Authentifizierung erfolgt vollständig **JWT-basiert** und folgt einem strikt stateless Ansatz. Nach erfolgreichem Login wird ein signiertes JSON Web Token ausgestellt, das den Benutzer eindeutig identifiziert und für nachfolgende Requests verwendet wird. Serverseitige HTTP-Sessions werden nicht eingesetzt, was die horizontale Skalierbarkeit des Systems erleichtert und den Betrieb in containerisierten Umgebungen vereinfacht.
-
-Passwörter werden niemals im Klartext gespeichert oder verarbeitet. Stattdessen kommt ein `DelegatingPasswordEncoder` zum Einsatz, der es erlaubt, den verwendeten Hash-Algorithmus (z. B. BCrypt oder Argon2) zukünftig zu wechseln, ohne bestehende Passwort-Hashes ungültig zu machen. Diese Entscheidung stellt sicher, dass das System auch langfristig auf neue sicherheitstechnische Anforderungen reagieren kann.
-
-### 7.2 Token-Struktur und JWT-Governance
-
-Die ausgestellten JWTs enthalten sowohl **stabile Claims** als auch **abgeleitete Claims**. Stabile Claims dienen der eindeutigen Identifikation des Benutzers und ändern sich über die Lebensdauer eines Tokens nicht. Dazu gehören insbesondere `sub`, `userId`, `username`, `iat`, `exp` und `iss`.
-
-Abgeleitete Claims, wie `roles` oder `permissions`, werden aus dem aktuellen Berechtigungsmodell berechnet und dienen ausschließlich der effizienten Autorisierungsentscheidung während der Request-Verarbeitung. Sie gelten ausdrücklich **nicht** als fachliche Quelle der Wahrheit. Änderungen an Rollen oder Berechtigungen werden serverseitig überprüft und nicht allein auf Basis des Tokens akzeptiert.
-
-Für die Signierung der Tokens wird bevorzugt ein asymmetrisches Verfahren (RS256) eingesetzt. Dadurch kann der öffentliche Schlüssel für die Token-Validierung verteilt werden, ohne den privaten Signierschlüssel preiszugeben.
-
-### 7.3 Autorisierung und Berechtigungsmodell
-
-Die Autorisierung im IDM Service basiert auf einem klar getrennten Rollen- und Berechtigungsmodell. Rollen dienen ausschließlich der fachlichen Bündelung von Berechtigungen und besitzen selbst keine technische Bedeutung für Autorisierungsentscheidungen.
-
-Die eigentliche Autorisierung erfolgt auf Basis von **Permissions**, die als Authorities in Spring Security eingebunden werden. Um Konsistenz und Lesbarkeit sicherzustellen, wird eine verbindliche Namenskonvention verwendet:
-
-```
-PERM_<DOMAIN>_<ACTION>
+system      → (keine Abhängigkeit zu domain)
 ```
 
-Beispiele sind `PERM_USER_READ`, `PERM_USER_MANAGE` oder `PERM_ROLE_ASSIGN`. Diese Konvention ermöglicht eine eindeutige Zuordnung zwischen fachlicher Operation und technischer Zugriffskontrolle.
+**Kernregel:**
 
-Autorisierungsentscheidungen werden im **API Layer** oder über Method Security (`@PreAuthorize`) durchgesetzt. Dadurch bleibt der Domain-Layer vollständig frei von sicherheitsrelevanten Abhängigkeiten, während gleichzeitig sichergestellt ist, dass fachliche Use-Cases nur von berechtigten Benutzern ausgeführt werden können.
+> Das `system`-Package darf niemals fachliche Domänenabhängigkeiten in Richtung IDM-Domain besitzen.
 
-### 7.4 Deaktivierung, Sperrung und Token-Revocation
+Diese Regel ist für die generische Rollen→Rechte-Auflösung und die Trennung von Core und Domäne verbindlich.
 
-Der Status eines Benutzers (z. B. aktiv, deaktiviert, gesperrt) wird bei jedem Request serverseitig geprüft. Ein gültiges JWT allein berechtigt nicht zur Ausführung fachlicher Operationen, wenn der zugehörige Benutzer inzwischen deaktiviert oder gesperrt wurde.
+### 4.3 Self-Scope / Foreign-Scope als Architekturprinzip
 
-Optional kann das Sicherheitsmodell um Mechanismen wie eine Token-Version oder einen sogenannten Security-Stamp erweitert werden. Dadurch lassen sich Tokens gezielt invalidieren, etwa bei sicherheitsrelevanten Änderungen wie Passwortwechseln oder Rollenentzug.
+Bereits im technischen Design zu berücksichtigen:
 
----
+* **Self-Scope** = IDM verwaltet eigene Verwaltungsrechte
+* **Foreign-Scopes** = IDM verwaltet zentrale Rollen-/Scope-Zuordnungen für Fachanwendungen
+* **Foreign-Scopes liefern primär Rollen**, nicht zwingend finale Einzelrechte
+* die **finale Rollen→Rechte-Auflösung** für Foreign-Scopes darf bewusst in der Fachanwendung erfolgen
 
-## 8. API-Design
-
-Das API-Design des IDM Service verfolgt das Ziel, eine **konsistente, verständliche und langfristig stabile REST-Schnittstelle** bereitzustellen. Die API stellt die fachlichen Fähigkeiten des Systems nach außen bereit, ohne interne Implementierungsdetails preiszugeben. Gleichzeitig dient sie als klar definierter Vertrag zwischen Backend und konsumierenden Systemen.
-
-### 8.1 Versionierung und Stabilität
-
-Die API wird explizit versioniert und über die URL bereitgestellt, beispielsweise unter `/api/v1/...`. Diese Form der Versionierung macht Breaking Changes transparent und erlaubt eine kontrollierte Weiterentwicklung der Schnittstellen.
-
-Innerhalb einer Hauptversion wird **Backward Compatibility garantiert**. Änderungen an bestehenden Endpunkten erfolgen ausschließlich in kompatibler Weise. Inkompatible Änderungen führen zu einer neuen Hauptversion der API.
-
-### 8.2 Ressourcenorientierung und HTTP-Semantik
-
-Die Endpunkte sind ressourcenorientiert aufgebaut und folgen den etablierten HTTP-Semantiken. Jede Ressource besitzt eine eindeutige URL, und die Bedeutung der HTTP-Methoden ist klar definiert.
-
-* `GET` wird für lesenden Zugriff verwendet und ist idempotent.
-* `POST` dient der Erstellung neuer Ressourcen.
-* `PUT` ersetzt eine Ressource vollständig und setzt alle relevanten Felder.
-* `PATCH` wird für partielle Änderungen eingesetzt, bei denen nur einzelne Attribute aktualisiert werden.
-* `DELETE` entfernt eine Ressource oder markiert sie fachlich als gelöscht.
-
-Diese klare Trennung erleichtert sowohl die Nutzung der API als auch ihre Wartung und Erweiterung.
-
-### 8.3 Listen-Endpunkte, Filterung und Pagination
-
-Für Endpunkte, die Listen von Ressourcen zurückgeben, wird ein einheitliches Schema für Pagination, Sortierung und Filterung verwendet. Ziel ist es, eine konsistente Nutzungserfahrung über alle Ressourcen hinweg sicherzustellen.
-
-Standardisierte Query-Parameter sind:
-
-* `page` und `size` zur Steuerung der Pagination
-* `sort` im Format `field,asc|desc`
-* `q` für einfache Volltext- oder Fuzzy-Suchen
-
-Die Responses enthalten neben der eigentlichen Ergebnisliste stets Metadaten wie `totalElements` und `totalPages`. Dadurch können Clients Listen effizient darstellen und paginieren, ohne zusätzliche Requests durchführen zu müssen.
+Diese Trennung ist fachlich und sicherheitlich bindend.
 
 ---
 
-## 9. DTO-Strategie
+## 5. Datenmodell und Persistenz
 
-Die DTO-Strategie des IDM Service dient der klaren Trennung zwischen externen API-Verträgen und dem internen Domain-Modell. DTOs sind ausschließlich ein Mittel zur Kommunikation über die API-Grenzen hinweg und dürfen keine fachliche Logik enthalten.
+### 5.1 Kern-Entities des belastbaren Baseline-Stands
 
-Für jede fachliche Operation werden spezialisierte DTO-Typen eingesetzt. Create-DTOs repräsentieren die zum Anlegen neuer Ressourcen erforderlichen Informationen, Update-DTOs beschreiben gezielte Änderungen an bestehenden Ressourcen, und Response-DTOs bilden den nach außen sichtbaren Zustand einer Ressource ab. Diese Trennung verhindert Überladung einzelner DTOs und erhöht die Verständlichkeit sowie Stabilität der API.
+Der aktuelle Projektstand verwendet ein persistentes, generisches Rollen- und Berechtigungsmodell mit folgenden zentralen Entitäten:
 
-DTOs enthalten grundsätzlich **keine sensiblen Daten**. Insbesondere sicherheitsrelevante Informationen wie Passwort-Hashes, Tokens oder interne Statusinformationen werden niemals über die API exponiert. Dadurch bleibt die API auch bei internen Modelländerungen sicher und konsistent.
+* `UserAccount`
+* `ApplicationScope`
+* `PermissionGroup`
+* `Permission`
+* `Role`
+* `UserApplicationScopeAssignment`
+* `UserRoleAssignment`
+* `RolePermissionAssignment`
 
-Das Mapping zwischen DTOs und Domain-Entities erfolgt ausschließlich im **API Layer**. Weder Domain- noch Persistenzschicht kennen DTOs oder Mapping-Logik. Diese klare Zuordnung stellt sicher, dass Änderungen an API-Verträgen keine Auswirkungen auf das Fachmodell haben und umgekehrt.
+### 5.2 Fachlich verbindliche Constraints
 
----
+Verbindlich vorzusehen sind insbesondere:
 
-## 10. Fehlermanagement
+* `UserAccount.username` → UNIQUE
+* `ApplicationScope(applicationKey, stageKey)` → UNIQUE
+* `PermissionGroup(applicationScope, name)` → UNIQUE
+* `Permission(applicationScope, name)` → UNIQUE
+* `Role(applicationScope, name)` → UNIQUE
+* `UserApplicationScopeAssignment(userAccount, applicationScope)` → UNIQUE
+* `UserRoleAssignment(userAccount, role)` → UNIQUE
+* `RolePermissionAssignment(role, permission)` → UNIQUE
 
-Ein einheitliches und nachvollziehbares Fehlermanagement ist ein zentraler Bestandteil des technischen Konzepts. Ziel ist es, Fehler sowohl für API-Konsumenten als auch für Entwickler eindeutig interpretierbar zu machen, ohne interne Implementierungsdetails offenzulegen.
+### 5.3 Optionale / nachgelagerte Domäne
 
-Fachliche und technische Fehler werden klar voneinander getrennt. Fachliche Fehler resultieren aus Verletzungen von Geschäftsregeln oder ungültigen Zustandsübergängen, während technische Fehler auf Infrastruktur- oder Laufzeitprobleme zurückzuführen sind. Beide Kategorien werden konsistent behandelt und in definierte HTTP-Antworten übersetzt.
+* `Person` ist **nicht Bestandteil des belastbaren MVP-Kerns**.
+* Falls fachlich später erforderlich, wird `Person` als optionale, nachgelagerte Domäne eingeführt.
+* Das technische Konzept blockiert diese spätere Erweiterung nicht, priorisiert aber aktuell bewusst die **Identity- und Berechtigungsdomäne**.
 
-### 10.1 Exception-Modell
+### 5.4 Produktive Zielerweiterungen (noch nicht als Baseline-Kern voraussetzen)
 
-Der IDM Service verwendet eine eigene Exception-Hierarchie, um fachliche Fehler explizit auszudrücken und sie von technischen Framework-Exceptions abzugrenzen. Zentrale Exception-Typen sind:
+Für die nächste produktive Härtungsstufe sind zusätzliche kontrollierbare Entitäten vorgesehen:
 
-* `EntityNotFoundException` für den Zugriff auf nicht existierende Ressourcen
-* `BusinessRuleViolationException` für fachliche Regelverletzungen
-* `ConflictException` für konkurrierende oder widersprüchliche Zustände
-* `AuthorizationViolationException` für unzulässige Zugriffsversuche
+* `UserSession` / `RefreshSession` oder funktional äquivalente Session-Repräsentation
+* `PasswordResetToken` oder funktional äquivalente Reset-Repräsentation
+* `EmailVerificationToken` oder funktional äquivalente Verifikations-Repräsentation
 
-Diese Exceptions werden gezielt im Domain- oder API-Layer ausgelöst und dienen als klare Signale für fehlerhafte Use-Cases.
+Wichtig:
 
-### 10.2 HTTP-Abbildung und Fehlerantworten
+* Diese Entitäten sind **architektonisch vorgesehen**.
+* Sie dürfen **nicht fälschlich als bereits vollständig im aktuellen Baseline-Kern umgesetzt** dokumentiert werden.
 
-Die Übersetzung von Exceptions in HTTP-Antworten erfolgt zentral über einen `@ControllerAdvice`. Dadurch wird sichergestellt, dass Fehler unabhängig vom Auslöseort einheitlich behandelt werden.
+### 5.5 Migrationsstrategie
 
-Die Abbildung auf HTTP-Statuscodes folgt festen Regeln:
-
-* Nicht gefundene Ressourcen führen zu einem **404 Not Found**.
-* Ungültige Eingaben oder Validierungsfehler werden mit **400 Bad Request** beantwortet.
-* Fehlende Berechtigungen resultieren in **403 Forbidden**.
-* Fachliche Konflikte werden als **409 Conflict** zurückgegeben.
-* Verletzungen fachlicher Regeln werden mit **422 Unprocessable Entity** signalisiert.
-
-Fehlerantworten enthalten strukturierte Informationen, die eine eindeutige Diagnose ermöglichen, ohne sensible oder interne Details preiszugeben. Dazu zählen insbesondere ein verständlicher Fehlercode, eine aussagekräftige Beschreibung sowie eine Korrelation über eine TraceId.
-
-Umsetzung über `@ControllerAdvice`.
-
----
-
-## 11. Audit Logging
-
-Audit Logging ist ein fachlich motivierter Bestandteil des IDM Service und dient der Nachvollziehbarkeit sowie Revisionssicherheit sicherheits‑ und identitätsrelevanter Änderungen. Im Gegensatz zum technischen Application Logging bildet das Audit Logging fachliche Ereignisse ab und ist daher strikt von Debug‑ oder Betriebslogs getrennt zu betrachten.
-
-Für jede fachlich relevante Zustandsänderung wird ein eigenständiger Audit‑Eintrag erzeugt. Dieser dokumentiert nachvollziehbar, **wer** zu **welchem Zeitpunkt** eine **welche Änderung** an einer fachlichen Entität vorgenommen hat. Typische Audit‑Informationen umfassen dabei den ausführenden Benutzer (actor), den Zeitpunkt der Aktion, den Typ und die Identität der betroffenen Entität sowie die Art der Änderung (z. B. CREATE, UPDATE, DELETE). Optional können geänderte Felder oder strukturierte Änderungsinformationen ergänzt werden, sofern dies fachlich erforderlich ist.
-
-Audit‑Logs sind revisionsrelevant und werden unveränderlich gespeichert. Sie sind nicht für Debug‑Zwecke gedacht, sondern dienen der fachlichen Nachvollziehbarkeit, internen Kontrolle und ggf. externen Prüfungen.
+* **Liquibase ist Zielstandard** für produktive Schema-Migrationen.
+* Der aktuelle Stand kann noch Übergangscharakter besitzen.
+* Für die nächste Härtungsstufe ist die konsequente Aktivierung und Nutzung von Liquibase verbindlich vorzusehen.
 
 ---
 
-## 12. Logging & Observability
+## 6. Authentifizierung, Tokens und Sessions
 
-Logging und Observability sind zentrale technische Querschnittsthemen, die den stabilen Betrieb, die Fehleranalyse und die Weiterentwicklung des IDM Service unterstützen. Ziel ist es, betriebliche Transparenz zu schaffen, ohne die Fachlichkeit oder Sicherheit des Systems zu kompromittieren.
+### 6.1 Baseline-nachweisbarer Ist-Stand
 
-### 12.1 Logging-Grundlagen
+Der aktuelle Baseline-Stand belegt:
 
-Der IDM Service verwendet SLF4J als Logging‑API mit Logback als Standard‑Implementierung. Ein einheitliches Log‑Level‑Konzept (ERROR, WARN, INFO, DEBUG, TRACE) sorgt dafür, dass Logausgaben konsistent interpretierbar bleiben und in unterschiedlichen Betriebsumgebungen angemessen gefiltert werden können.
+* öffentlicher Login auf **`POST /auth/login`**
+* Current-Context-Endpoint auf **`GET /auth/me`**
+* JWT-Konfiguration über Secret und TTL
+* tokenbasierte Absicherung geschützter Endpunkte
 
-Ein zentrales Sicherheitsprinzip ist, dass **keine Secrets oder Credentials in Logs erscheinen dürfen**. Dazu zählen insbesondere Passwörter, Passwort‑Hashes, JWTs, Refresh‑Tokens, API‑Keys, private Schlüssel sowie sonstige sicherheitsrelevante Zugangsdaten. Sensible Informationen sind vor dem Logging konsequent zu maskieren oder vollständig zu unterdrücken.
+### 6.2 Verbindliche Trennung: Access Token vs. Session-/Refresh-Kontext
 
-### 12.2 Structured Logging
+Für die erste echte Produktionsreife ist die Unterscheidung verbindlich zu präzisieren:
 
-Die Anwendung setzt verbindlich auf **Structured Logging**, um Logs maschinenlesbar, auswertbar und korrelierbar zu machen. Log‑Einträge bestehen aus strukturierten Key‑Value‑Daten und werden bevorzugt im JSON‑Format ausgegeben, insbesondere im Container‑ und Produktivbetrieb.
+#### Access Token
 
-Diese Form des Loggings ermöglicht eine spätere Integration von Observability‑Plattformen wie OpenTelemetry, Elastic, Loki oder Datadog, ohne bestehende Log‑Statements refaktorieren zu müssen.
+* kurzlebig
+* ausschließlich für API-Zugriffe
+* JWT-basiert
+* **wird nicht dauerhaft serverseitig persistiert**
 
-### 12.3 Korrelation und Context Propagation
+#### Refresh Token / Session Token / kontrollierter Session-Kontext
 
-Zur Nachvollziehbarkeit von Requests über mehrere Komponenten hinweg wird pro eingehendem Request eine TraceId erzeugt oder aus vorhandenen Headern übernommen. Diese TraceId wird über den MDC propagiert und in allen relevanten Log‑Einträgen geführt. Zusätzlich wird sie in Fehlerantworten zurückgegeben, um eine eindeutige Korrelation zwischen Client‑Fehlern und Server‑Logs zu ermöglichen.
+* langlebiger als Access Token
+* ausschließlich für kontrollierte Erneuerung und Session-Lifecycle
+* serverseitig kontrollierbar, prüfbar und widerrufbar
+* darf technisch als Token, Session-ID oder äquivalente Repräsentation modelliert werden
 
-Optional kann ergänzend eine SpanId verwendet werden, um zukünftig verteiltes Tracing zu unterstützen.
+### 6.3 Aktuelle technische Leitentscheidung für Version 2
 
-### 12.4 OpenTelemetry-Readiness
+* Der **belastbar nachweisbare Baseline-Kern** ist aktuell **Access-Token-zentriert**.
+* Ein produktionsreifer **Refresh-/Session-Mechanismus ist fachlich vorgesehen und technisch empfohlen**, aber **nicht als bereits vollständig umgesetzt zu behandeln**.
 
-Der IDM Service ist konzeptionell auf eine spätere Nutzung von OpenTelemetry vorbereitet, ohne initiale Abhängigkeiten einzuführen. Logging, Tracing und Metriken sind klar voneinander getrennt, und proprietäre APIs werden vermieden. Eine spätere Erweiterung kann durch den Einsatz eines OpenTelemetry Java Agents oder SDKs erfolgen, ohne bestehende Logging‑ oder Anwendungscode‑Strukturen anzupassen.
+### 6.4 Login-Flow (Baseline + Zielbild)
 
-### 12.5 Actuator & Health
+#### Baseline-Kern
 
-Zur Überwachung des Systemzustands wird Spring Boot Actuator eingesetzt. Health‑, Readiness‑ und Liveness‑Endpoints ermöglichen eine zuverlässige Integration in containerisierte Betriebsumgebungen und unterstützen automatisierte Deployments sowie Monitoring.
+1. Client ruft `POST /auth/login` mit Credentials auf.
+2. User wird gegen `UserAccount` validiert.
+3. Benutzerstatus, Passwort-Hash, Fehlversuche und Sperren werden geprüft.
+4. Bei Erfolg wird ein **JWT Access Token** ausgestellt.
+
+#### Produktive Härtung (nächste Stufe)
+
+Zusätzlich:
+
+5. Es wird ein **Refresh-/Session-Kontext** erstellt.
+6. Ein kontrollierter Refresh-Mechanismus wird aktiviert.
+7. Session-Lifecycle wird explizit widerrufbar.
+
+### 6.5 Access-Token-Inhalt
+
+Das Token enthält mindestens:
+
+* `sub`
+* `iat`
+* `exp`
+* `iss`
+* `userId`
+* `username`
+* Scope-Kontext / Scope-Referenz
+
+Wichtige Klarstellung:
+
+* die aktuelle Architektur sieht vor, dass **effektive Permissions serverseitig aufgelöst werden**
+* Rollen und/oder finale Permissions sollen **nicht unkontrolliert redundant im Token als alleinige Autorisierungsquelle** fungieren
+* das entspricht der dokumentierten Trennung von Authentication und serverseitiger Authorization-Resolution
+
+### 6.6 Signaturstrategie
+
+#### Aktueller realistischer Baseline-Stand
+
+* symmetrische Signatur mit Shared Secret, z. B. **HS256**
+
+#### Zielbild für produktive Härtung
+
+* asymmetrische Signatur (**RS256** oder **ES256**) für Multi-Service-Betrieb
+
+Damit gilt:
+
+* **HS256** = zulässiger, realistischer Baseline-/MVP-Stand
+* **RS256/ES256** = bevorzugte nächste produktive Härtungsstufe
+
+### 6.7 Refresh / Logout / Invalidierung (Zielarchitektur)
+
+Für die nächste produktive Stufe sind verbindlich vorzusehen:
+
+* `POST /auth/refresh`
+* `POST /auth/logout`
+* `POST /auth/logout-all`
+
+Regeln:
+
+* Access Tokens werden nicht blacklisted und nicht dauerhaft persistiert.
+* Refresh-/Session-Kontexte sind widerrufbar.
+* Passwortänderung, Passwort-Reset, Benutzer-Deaktivierung und sicherheitsrelevante Sperren müssen aktive Session-Kontexte invalidieren können.
+* optional: Rotation von Refresh Tokens als nächster Härtungsschritt.
 
 ---
 
-## 13. Build, SBOM und Qualitätssicherung
+## 7. Autorisierung und Rechteauflösung
 
-Der Build‑ und Qualitätsprozess des IDM Service ist darauf ausgelegt, reproduzierbare Artefakte, transparente Abhängigkeiten und eine hohe Code‑Qualität sicherzustellen.
+### 7.1 Grundmodell
 
-Der Build erfolgt über Maven und umfasst die vollständige Kompilierung, das Ausführen automatisierter Tests sowie die Erstellung eines lauffähigen JAR‑Artefakts. Abhängigkeiten werden zentral verwaltet, sodass der Build deterministisch und nachvollziehbar bleibt.
+Das System folgt technisch dem Modell:
 
-Zur Erfüllung von Compliance‑ und Sicherheitsanforderungen wird eine **Software Bill of Materials (SBOM)** erzeugt, beispielsweise im CycloneDX‑ oder SPDX‑Format. Dadurch sind alle eingesetzten Abhängigkeiten und deren Versionen transparent dokumentiert.
+**User → Roles → Permissions → GrantedAuthorities**
 
-Optional kann der Build‑Prozess um eine Containerisierung erweitert werden, etwa über Jib oder Buildpacks, um ein OCI‑konformes Image für den Betrieb in Kubernetes‑Umgebungen zu erzeugen.
+### 7.2 Verbindliche Baseline-Architektur
+
+Die aktuelle Architekturentscheidung lautet:
+
+* JWT dient primär der **Authentifizierung / Identität**.
+* Rollen und Permissions werden **serverseitig datenbankbasiert** aufgelöst.
+* Effektive `GrantedAuthority`-Instanzen entstehen zur Laufzeit.
+
+### 7.3 Konsequenzen
+
+Vorteile:
+
+* keine stale Authorization bei Rollenänderungen
+* Änderungen wirken sofort ohne Token-Neuausstellung
+* keine überladene Token-Struktur
+* zentrale Governance im IDM
+
+### 7.4 Foreign-Scopes
+
+Für Fachanwendungen gilt bewusst:
+
+* IDM liefert zentrale Rollen-/Scope-Zuordnung.
+* Fachanwendungen dürfen Foreign-Scope-Rollen in **eigene fachliche Rechte** auflösen.
+* Dadurch bleibt Domänenhoheit in der Fachanwendung erhalten.
+
+### 7.5 Method Security
+
+* `@PreAuthorize` / `hasAuthority(...)` ist das Zielmuster.
+* Interne IDM-Admin-APIs sind permission-basiert abzusichern.
+* Keine hardcodierte „God Role“ ohne fachliche Auflösung.
 
 ---
 
-## 14. Teststrategie
+## 8. API-Design und Endpunkt-Strategie
 
-Die Teststrategie des IDM Service verfolgt das Ziel, fachliche Korrektheit, technische Stabilität und sicherheitsrelevantes Verhalten frühzeitig und automatisiert abzusichern. Tests sind integraler Bestandteil des Entwicklungsprozesses und nicht als nachgelagerte Qualitätssicherung zu verstehen.
+### 8.1 Baseline-nachweisbare Auth-Endpunkte
 
-Die Tests werden bewusst in unterschiedliche Ebenen unterteilt. **Domain Tests** prüfen fachliche Logik isoliert und ohne Spring‑Kontext, um schnelle Rückmeldungen und eine hohe Teststabilität zu gewährleisten. **Integration Tests** werden mit Spring Boot ausgeführt und verifizieren das Zusammenspiel von Komponenten, Persistenz und Konfiguration.
+* `POST /auth/login`
+* `GET /auth/me`
 
-Zusätzlich werden **Security‑Tests** eingesetzt, um Authentifizierungs‑ und Autorisierungsmechanismen zu überprüfen, insbesondere Login‑Flows und Permission‑basierte Zugriffskontrollen.
+Diese Pfade sind im aktuellen Baseline-Stand konsistent zu referenzieren.
 
-Liquibase‑Migrationen werden auch im Testprofil ausgeführt, sodass Tests stets gegen ein konsistentes und realitätsnahes Datenbankschema laufen.
+### 8.2 Produktive Härtung – nächste Stufe
+
+Zusätzlich vorzusehen:
+
+* `POST /auth/refresh`
+* `POST /auth/logout`
+* `POST /auth/logout-all`
+* optional intern: `POST /auth/introspect`
+
+### 8.3 Verwaltungs-APIs
+
+Konsistent vorzusehen:
+
+* `/api/.../users`
+* `/api/.../application-scopes`
+* `/api/.../roles`
+* `/api/.../permissions`
+* `/api/.../permission-groups`
+* `/api/.../user-application-scope-assignments`
+* `/api/.../user-role-assignments`
+
+### 8.4 Versionierung
+
+Empfehlung:
+
+* Zielbild: versionierte API, z. B. `/api/v1/...`
+* baseline-naher pragmatischer Betrieb ohne vollständige Versionierung ist aktuell zulässig, solange die API konsistent dokumentiert bleibt
+
+### 8.5 DTO-Strategie
+
+* strikte Trennung von Entities und DTOs
+* separate Create-/Update-/Response-DTOs
+* keine sensitiven Felder in Responses
+* eigener stabiler DTO-Typ für `/auth/me`
 
 ---
+
+## 9. Bootstrap, Initialisierung und Konfigurationsmodell
+
+### 9.1 Verbindliche Architektur
+
+Der aktuelle Stand verwendet ein **deterministisches, XML-basiertes Bootstrap-Modell** für sicherheitsrelevante Stammdaten.
+
+Konfigurierbar sind unter anderem:
+
+* Admin-User
+* Scopes
+* Permission Groups
+* Permissions
+* Roles
+* Role-Permission-Assignments
+* User-Role-Assignments
+
+### 9.2 Technische Regeln
+
+* Definition (XML) und Deployment-Selektion (Properties) bleiben strikt getrennt.
+* Self-Scope wird bewusst und deterministisch initialisiert.
+* Bootstrap ist nicht nur Seed-Data, sondern Sicherheits- und Betriebsinitialisierung.
+* Safe-/Force-Strategien bleiben zulässig, sofern deterministisch und testabgedeckt.
+
+### 9.3 Nicht zulässig
+
+* versteckte Hardcodings im Code statt deklarativer Initialisierung
+* fachliche Sicherheitsdaten ausschließlich manuell per DB-Manipulation
+
+---
+
+## 10. Security-Hardening für die erste produktive Stufe
+
+### 10.1 Passwort-Handling
+
+* `DelegatingPasswordEncoder`
+* Standard z. B. BCrypt / Argon2id
+* konfigurierbare Mindestanforderungen
+* keine Klartextspeicherung
+
+### 10.2 Login-Schutz
+
+Der Baseline-Stand sieht bereits konfigurierbare Login-Protection-Parameter vor:
+
+* `max-failed-attempts`
+* `lock-duration-seconds`
+
+Diese Mechanik ist als Mindest-Hardening beizubehalten und auszubauen.
+
+### 10.3 Reset- und Verifikations-Flows
+
+Für die nächste produktive Härtungsstufe verbindlich vorzusehen:
+
+* administrativer Passwort-Reset
+* optional nutzerinitiierter Reset via E-Mail-Token
+* E-Mail-Verification
+
+Regeln:
+
+* Tokens kurzlebig
+* einmalig
+* serverseitig kontrollierbar
+* möglichst keine Klartextpersistenz solcher Tokens
+
+### 10.4 Logging und Audit
+
+* keine Passwörter oder Tokens in Logs
+* Logging sicherheitsrelevanter Kernereignisse
+* Audit-Felder auf Entity-Ebene
+* bewusst leichtgewichtig starten, aber Kernereignisse zwingend erfassen
+
+---
+
+## 11. Tests, Qualitätssicherung und Deterministik
+
+### 11.1 Verbindliche Testthemen
+
+Mindestens abzudecken:
+
+* erfolgreicher Login
+* Login mit falschem Passwort
+* Zugriff ohne Token
+* Zugriff mit gültigem Token
+* Current Auth Context (`/auth/me`)
+* Rollen-/Permission-Auflösung
+* Bootstrap (Disabled / Safe / Idempotenz / Fehlerszenarien)
+* Login-Protection / Sperrverhalten
+* später: Refresh / Logout / Logout-all
+
+### 11.2 Testprinzipien
+
+* profilgesteuert (`test`)
+* deterministische Testdaten
+* keine impliziten Umgebungsannahmen
+* H2 oder äquivalente isolierte Test-Datenbank
+* Baseline + bestätigte Chat-Änderungen als einzige Wahrheitsquelle
+
+### 11.3 Projektregel
+
+Für dieses Projekt gilt dauerhaft:
+
+* ausschließlich deterministisches Arbeiten
+* keine Annahmen über nicht nachgewiesenen Code
+* keine Erfindung von Klassen, Methoden oder Pfaden
+* Dokumentation und Umsetzung müssen mit Textexport und bestätigten Änderungen konsistent bleiben
+
+---
+
+## 12. Konsolidierte Leitentscheidung für Version 2
+
+Dieses technische Konzept in **Version 2** konsolidiert den aktuellen MVP-Stand mit der nächsten klar definierten produktiven Härtungsstufe.
+
+### 12.1 Verbindlicher Baseline-Kern
+
+* Spring-Boot-Monolith mit klarer Schichtung
+* persistentes Rollen-/Permission-/Scope-Modell
+* deterministisches XML-Bootstrap
+* `POST /auth/login`
+* `GET /auth/me`
+* JWT-basierte Authentifizierung
+* serverseitige Rollen-/Permission-Auflösung
+* konfigurierbarer Login-Schutz
+
+### 12.2 Verbindliche nächste produktive Härtung
+
+* klare Trennung **Access Token vs. Refresh-/Session-Kontext**
+* `POST /auth/refresh`
+* `POST /auth/logout`
+* `POST /auth/logout-all`
+* kontrollierbare Session-Invalidierung ohne Persistenz von Access Tokens
+* Passwort-Reset
+* E-Mail-Verification
+* perspektivisch asymmetrische JWT-Signatur
+* Aktivierung echter Liquibase-Migrationsführung
+
+### 12.3 Wichtige Korrekturen gegenüber früheren, zu groben Annahmen
+
+* **Person** ist aktuell **nicht MVP-Kern**.
+* **Refresh-/Logout-Flows** sind **fachlich erforderlich**, aber **nicht als bereits vollständig umgesetzt zu dokumentieren**.
+* **Auth-Pfade** sind baseline-konsistent derzeit auf **`/auth/...`** zu referenzieren.
+* **HS256** ist als realistischer Baseline-Stand zulässig; **RS256/ES256** ist Zielbild.
+* **Autorisierung** bleibt serverseitig datenbankbasiert, nicht tokenzentriert.
+
+---
+
+## 13. Zusammenfassung
+
+Das IDM ist im aktuellen Stand ein **leichtgewichtiger, aber bereits ernsthaft produktionsnaher Identity- und Authorization-Service**.
+
+Der belastbare MVP-Kern ist erreicht.
+
+Für echte erste Produktivreife fehlen technisch vor allem noch die klar definierte und sauber implementierte **Session-/Refresh-Strategie**, die **kontrollierte Invalidierung aktiver Session-Kontexte** sowie die flankierenden **Reset-/Verifikations-Flows**.
+
+Genau diese Punkte sind in diesem Dokument nun bewusst als **nächste produktive Härtungsstufe** definiert – ohne den aktuellen Baseline-Stand zu überzeichnen.
+
+Damit ist das technische Konzept konsistent zum überarbeiteten Fachkonzept V2 und zum aktuellen IDM-Projektstand.
