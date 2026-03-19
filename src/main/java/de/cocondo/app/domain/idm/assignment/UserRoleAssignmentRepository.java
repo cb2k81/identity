@@ -17,4 +17,16 @@ public interface UserRoleAssignmentRepository extends JpaRepository<UserRoleAssi
     List<UserRoleAssignment> findAllByUserAccount_Id(String userAccountId);
 
     List<UserRoleAssignment> findAllByRole_Id(String roleId);
+
+    List<UserRoleAssignment> findAllByUserAccount_IdAndRole_ApplicationScope_ApplicationKeyAndRole_ApplicationScope_StageKey(
+            String userAccountId,
+            String applicationKey,
+            String stageKey
+    );
+
+    List<UserRoleAssignment> findAllByRole_IdAndRole_ApplicationScope_ApplicationKeyAndRole_ApplicationScope_StageKey(
+            String roleId,
+            String applicationKey,
+            String stageKey
+    );
 }

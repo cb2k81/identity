@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<scopedRoles>
+    <items>
+        <role>
+            <applicationKey>PERSONNEL</applicationKey>
+            <stageKey>DEV</stageKey>
+            <name>PERSONNEL_ADMIN</name>
+            <description>Initial admin role for Personnel DEV technical integration</description>
+            <systemProtected>true</systemProtected>
+        </role>
+    </items>
+</scopedRoles>
