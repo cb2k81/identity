@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<users>
+    <items>
+        <user>
+            <username>m.schneider</username>
+            <displayName>Martin Schneider</displayName>
+            <email>m.schneider@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>s.mueller</username>
+            <displayName>Sabine Müller</displayName>
+            <email>s.mueller@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>t.weber</username>
+            <displayName>Thomas Weber</displayName>
+            <email>t.weber@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>l.fischer</username>
+            <displayName>Laura Fischer</displayName>
+            <email>l.fischer@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>j.hoffmann</username>
+            <displayName>Jan Hoffmann</displayName>
+            <email>j.hoffmann@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>k.bauer</username>
+            <displayName>Katharina Bauer</displayName>
+            <email>k.bauer@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>d.wagner</username>
+            <displayName>Daniel Wagner</displayName>
+            <email>d.wagner@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>n.becker</username>
+            <displayName>Nina Becker</displayName>
+            <email>n.becker@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>p.schulz</username>
+            <displayName>Patrick Schulz</displayName>
+            <email>p.schulz@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>c.koch</username>
+            <displayName>Claudia Koch</displayName>
+            <email>c.koch@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>a.richter</username>
+            <displayName>Andreas Richter</displayName>
+            <email>a.richter@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>j.klein</username>
+            <displayName>Julia Klein</displayName>
+            <email>j.klein@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>s.wolf</username>
+            <displayName>Stefan Wolf</displayName>
+            <email>s.wolf@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>m.neumann</username>
+            <displayName>Melanie Neumann</displayName>
+            <email>m.neumann@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>f.schroeder</username>
+            <displayName>Felix Schröder</displayName>
+            <email>f.schroeder@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>h.zimmermann</username>
+            <displayName>Hannah Zimmermann</displayName>
+            <email>h.zimmermann@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>l.braun</username>
+            <displayName>Lukas Braun</displayName>
+            <email>l.braun@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>e.krueger</username>
+            <displayName>Eva Krüger</displayName>
+            <email>e.krueger@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>r.hartmann</username>
+            <displayName>Robert Hartmann</displayName>
+            <email>r.hartmann@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>m.lang</username>
+            <displayName>Monika Lang</displayName>
+            <email>m.lang@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>d.werner</username>
+            <displayName>David Werner</displayName>
+            <email>d.werner@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>s.krause</username>
+            <displayName>Sophie Krause</displayName>
+            <email>s.krause@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>t.meier</username>
+            <displayName>Tobias Meier</displayName>
+            <email>t.meier@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>v.lehmann</username>
+            <displayName>Vanessa Lehmann</displayName>
+            <email>v.lehmann@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>m.schmitt</username>
+            <displayName>Markus Schmitt</displayName>
+            <email>m.schmitt@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>i.schmid</username>
+            <displayName>Isabel Schmid</displayName>
+            <email>i.schmid@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>b.kraemer</username>
+            <displayName>Benjamin Krämer</displayName>
+            <email>b.kraemer@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>a.vogel</username>
+            <displayName>Alina Vogel</displayName>
+            <email>a.vogel@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>j.fuchs</username>
+            <displayName>Jonas Fuchs</displayName>
+            <email>j.fuchs@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>n.peters</username>
+            <displayName>Nadine Peters</displayName>
+            <email>n.peters@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>p.sommer</username>
+            <displayName>Philipp Sommer</displayName>
+            <email>p.sommer@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>l.franke</username>
+            <displayName>Lisa Franke</displayName>
+            <email>l.franke@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>c.heinrich</username>
+            <displayName>Christian Heinrich</displayName>
+            <email>c.heinrich@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>m.simon</username>
+            <displayName>Maria Simon</displayName>
+            <email>m.simon@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>f.graf</username>
+            <displayName>Florian Graf</displayName>
+            <email>f.graf@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>k.haas</username>
+            <displayName>Kristin Haas</displayName>
+            <email>k.haas@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>r.otto</username>
+            <displayName>Ralf Otto</displayName>
+            <email>r.otto@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>j.seidel</username>
+            <displayName>Jennifer Seidel</displayName>
+            <email>j.seidel@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>s.brandt</username>
+            <displayName>Sebastian Brandt</displayName>
+            <email>s.brandt@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+        <user>
+            <username>m.kuhn</username>
+            <displayName>Marina Kühn</displayName>
+            <email>m.kuhn@personnel.local</email>
+            <password>initialSecret123!</password>
+        </user>
+    </items>
+</users>

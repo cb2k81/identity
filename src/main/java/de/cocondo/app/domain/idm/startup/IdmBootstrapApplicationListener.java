@@ -37,6 +37,7 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
     private final IdmBootstrapProperties bootstrapProperties;
     private final IdmSelfProperties selfProperties;
     private final IdmBootstrapXmlLoader xmlLoader;
+    private final IdmAdditionalBundleBootstrapService additionalBundleBootstrapService;
 
     private final ApplicationScopeEntityService applicationScopeEntityService;
     private final UserAccountEntityService userAccountEntityService;
@@ -90,6 +91,11 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
                 .findFirst()
                 .orElseThrow(() -> new IllegalStateException(
                         "Self scope not found after ensureScope(): (" + selfAppKey + "," + selfStageKey + ")"));
+
+        // selfScopeXml is intentionally resolved and validated as part of bootstrap source-of-truth checks
+        if (selfScopeXml == null) {
+            throw new IllegalStateException("Self scope XML resolution unexpectedly returned null.");
+        }
 
         // 2) Resolve admin config (XML preferred, properties fallback)
         AdminUserXml adminXml = xmlLoader.loadAdminUserOrNull();
@@ -148,6 +154,9 @@ public class IdmBootstrapApplicationListener implements ApplicationListener<Appl
         } else {
             scopedUserRoleAssignmentsXml.getItems().forEach(this::ensureScopedUserRoleAssignment);
         }
+
+        // 10) Additional generic bootstrap bundles (optional)
+        additionalBundleBootstrapService.processAdditionalBundles(force);
 
         log.info("IDM bootstrap completed (mode={}, selfScope=({},{}), admin={})",
                 mode, selfAppKey, selfStageKey, adminUsername);

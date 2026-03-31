@@ -40,6 +40,10 @@ idm:
     admin:
       username: admin
       password: secret
+    additional-bundles:
+      - name: personnel
+        enabled: true
+        base-path: idm/bootstrap-bundles/personnel
 
   self:
     scope:

@@ -4,6 +4,9 @@ import lombok.Getter;
 import lombok.Setter;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Configuration properties for IDM bootstrap initialization.
  *
@@ -104,6 +107,16 @@ public class IdmBootstrapProperties {
     private String scopedUserRoleAssignmentsXml = "scoped-user-role-assignments.xml";
 
     /**
+     * Optional additional bootstrap bundles.
+     *
+     * Purpose:
+     * - generically load additional scope/user bootstrap data from separate classpath folders
+     * - no application- or scope-specific semantics in Java code
+     * - each bundle reuses the existing XML file names from this configuration
+     */
+    private List<AdditionalBundle> additionalBundles = new ArrayList<>();
+
+    /**
      * Default admin configuration (used as fallback if no admin.xml exists).
      */
     private Admin admin = new Admin();
@@ -115,5 +128,27 @@ public class IdmBootstrapProperties {
         private String username = "admin";
 
         private String password = "admin";
+    }
+
+    @Getter
+    @Setter
+    public static class AdditionalBundle {
+
+        /**
+         * Logical bundle name for logging / diagnostics only.
+         * No business semantics are derived from this value.
+         */
+        private String name;
+
+        /**
+         * Explicit enable switch for this bundle.
+         */
+        private boolean enabled = false;
+
+        /**
+         * Classpath base folder for this bundle.
+         * Example: "idm/bootstrap-bundles/personnel"
+         */
+        private String basePath;
     }
 }

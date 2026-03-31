@@ -26,200 +26,139 @@ public class IdmBootstrapXmlLoader {
     private final XmlMapper xmlMapper = new XmlMapper();
 
     public AdminUserXml loadAdminUserOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getAdminXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap admin XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            AdminUserXml admin = xmlMapper.readValue(in, AdminUserXml.class);
-            logger.info("IDM bootstrap admin XML loaded from classpath:{}", path);
-            return admin;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap admin XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getAdminXml(),
+                AdminUserXml.class,
+                "admin"
+        );
     }
 
     public UsersXml loadUsersOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getUsersXml());
-        ClassPathResource resource = new ClassPathResource(path);
+        return loadUsersOrNull(properties.getBasePath());
+    }
 
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap users XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            UsersXml xml = xmlMapper.readValue(in, UsersXml.class);
-            logger.info("IDM bootstrap users XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap users XML at classpath:" + path, e);
-        }
+    public UsersXml loadUsersOrNull(String basePath) {
+        return readXmlOrNull(
+                basePath,
+                properties.getUsersXml(),
+                UsersXml.class,
+                "users"
+        );
     }
 
     public ApplicationScopesXml loadApplicationScopesOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getScopesXml());
-        ClassPathResource resource = new ClassPathResource(path);
+        return loadApplicationScopesOrNull(properties.getBasePath());
+    }
 
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap scopes XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            ApplicationScopesXml scopes = xmlMapper.readValue(in, ApplicationScopesXml.class);
-            logger.info("IDM bootstrap scopes XML loaded from classpath:{}", path);
-            return scopes;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap scopes XML at classpath:" + path, e);
-        }
+    public ApplicationScopesXml loadApplicationScopesOrNull(String basePath) {
+        return readXmlOrNull(
+                basePath,
+                properties.getScopesXml(),
+                ApplicationScopesXml.class,
+                "scopes"
+        );
     }
 
     public UserApplicationScopeAssignmentsXml loadUserApplicationScopeAssignmentsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getUserApplicationScopeAssignmentsXml());
-        ClassPathResource resource = new ClassPathResource(path);
+        return loadUserApplicationScopeAssignmentsOrNull(properties.getBasePath());
+    }
 
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap user-application-scope assignments XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            UserApplicationScopeAssignmentsXml xml = xmlMapper.readValue(in, UserApplicationScopeAssignmentsXml.class);
-            logger.info("IDM bootstrap user-application-scope assignments XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap user-application-scope assignments XML at classpath:" + path, e);
-        }
+    public UserApplicationScopeAssignmentsXml loadUserApplicationScopeAssignmentsOrNull(String basePath) {
+        return readXmlOrNull(
+                basePath,
+                properties.getUserApplicationScopeAssignmentsXml(),
+                UserApplicationScopeAssignmentsXml.class,
+                "user-application-scope assignments"
+        );
     }
 
     public PermissionGroupsXml loadPermissionGroupsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getPermissionGroupsXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap permission groups XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            PermissionGroupsXml xml = xmlMapper.readValue(in, PermissionGroupsXml.class);
-            logger.info("IDM bootstrap permission groups XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap permission groups XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getPermissionGroupsXml(),
+                PermissionGroupsXml.class,
+                "permission groups"
+        );
     }
 
     public PermissionsXml loadPermissionsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getPermissionsXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap permissions XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            PermissionsXml xml = xmlMapper.readValue(in, PermissionsXml.class);
-            logger.info("IDM bootstrap permissions XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap permissions XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getPermissionsXml(),
+                PermissionsXml.class,
+                "permissions"
+        );
     }
 
     public RolesXml loadRolesOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getRolesXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap roles XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            RolesXml xml = xmlMapper.readValue(in, RolesXml.class);
-            logger.info("IDM bootstrap roles XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap roles XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getRolesXml(),
+                RolesXml.class,
+                "roles"
+        );
     }
 
     public ScopedRolesXml loadScopedRolesOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getScopedRolesXml());
-        ClassPathResource resource = new ClassPathResource(path);
+        return loadScopedRolesOrNull(properties.getBasePath());
+    }
 
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap scoped roles XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            ScopedRolesXml xml = xmlMapper.readValue(in, ScopedRolesXml.class);
-            logger.info("IDM bootstrap scoped roles XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap scoped roles XML at classpath:" + path, e);
-        }
+    public ScopedRolesXml loadScopedRolesOrNull(String basePath) {
+        return readXmlOrNull(
+                basePath,
+                properties.getScopedRolesXml(),
+                ScopedRolesXml.class,
+                "scoped roles"
+        );
     }
 
     public RolePermissionAssignmentsXml loadRolePermissionAssignmentsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getRolePermissionAssignmentsXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap role-permission assignments XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            RolePermissionAssignmentsXml xml = xmlMapper.readValue(in, RolePermissionAssignmentsXml.class);
-            logger.info("IDM bootstrap role-permission assignments XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap role-permission assignments XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getRolePermissionAssignmentsXml(),
+                RolePermissionAssignmentsXml.class,
+                "role-permission assignments"
+        );
     }
 
     public UserRoleAssignmentsXml loadUserRoleAssignmentsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getUserRoleAssignmentsXml());
-        ClassPathResource resource = new ClassPathResource(path);
-
-        if (!resource.exists()) {
-            logger.info("IDM bootstrap user-role assignments XML not found at classpath:{} (skipping)", path);
-            return null;
-        }
-
-        try (InputStream in = resource.getInputStream()) {
-            UserRoleAssignmentsXml xml = xmlMapper.readValue(in, UserRoleAssignmentsXml.class);
-            logger.info("IDM bootstrap user-role assignments XML loaded from classpath:{}", path);
-            return xml;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap user-role assignments XML at classpath:" + path, e);
-        }
+        return readXmlOrNull(
+                properties.getBasePath(),
+                properties.getUserRoleAssignmentsXml(),
+                UserRoleAssignmentsXml.class,
+                "user-role assignments"
+        );
     }
 
     public ScopedUserRoleAssignmentsXml loadScopedUserRoleAssignmentsOrNull() {
-        String path = buildPath(properties.getBasePath(), properties.getScopedUserRoleAssignmentsXml());
+        return loadScopedUserRoleAssignmentsOrNull(properties.getBasePath());
+    }
+
+    public ScopedUserRoleAssignmentsXml loadScopedUserRoleAssignmentsOrNull(String basePath) {
+        return readXmlOrNull(
+                basePath,
+                properties.getScopedUserRoleAssignmentsXml(),
+                ScopedUserRoleAssignmentsXml.class,
+                "scoped user-role assignments"
+        );
+    }
+
+    private <T> T readXmlOrNull(String basePath, String fileName, Class<T> type, String label) {
+        String path = buildPath(basePath, fileName);
         ClassPathResource resource = new ClassPathResource(path);
 
         if (!resource.exists()) {
-            logger.info("IDM bootstrap scoped user-role assignments XML not found at classpath:{} (skipping)", path);
+            logger.info("IDM bootstrap {} XML not found at classpath:{} (skipping)", label, path);
             return null;
         }
 
         try (InputStream in = resource.getInputStream()) {
-            ScopedUserRoleAssignmentsXml xml = xmlMapper.readValue(in, ScopedUserRoleAssignmentsXml.class);
-            logger.info("IDM bootstrap scoped user-role assignments XML loaded from classpath:{}", path);
+            T xml = xmlMapper.readValue(in, type);
+            logger.info("IDM bootstrap {} XML loaded from classpath:{}", label, path);
             return xml;
         } catch (IOException e) {
-            throw new IllegalStateException("Failed to read IDM bootstrap scoped user-role assignments XML at classpath:" + path, e);
+            throw new IllegalStateException("Failed to read IDM bootstrap " + label + " XML at classpath:" + path, e);
         }
     }
 
