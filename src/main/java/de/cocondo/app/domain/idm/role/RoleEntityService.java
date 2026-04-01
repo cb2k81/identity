@@ -1,6 +1,9 @@
 package de.cocondo.app.domain.idm.role;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -24,6 +27,14 @@ public class RoleEntityService {
 
     public boolean existsByApplicationScopeId(String applicationScopeId) {
         return roleRepository.existsByApplicationScope_Id(applicationScopeId);
+    }
+
+    public Page<Role> loadPage(Pageable pageable) {
+        return roleRepository.findAll(pageable);
+    }
+
+    public Page<Role> loadPage(Specification<Role> specification, Pageable pageable) {
+        return roleRepository.findAll(specification, pageable);
     }
 
     @Transactional

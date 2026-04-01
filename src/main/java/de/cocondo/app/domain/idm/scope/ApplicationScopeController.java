@@ -4,6 +4,7 @@ import de.cocondo.app.domain.idm.permission.PermissionManagementDomainService;
 import de.cocondo.app.domain.idm.scope.dto.ApplicationScopeDTO;
 import de.cocondo.app.domain.idm.scope.dto.CreateApplicationScopeRequestDTO;
 import de.cocondo.app.domain.idm.scope.dto.UpdateApplicationScopeRequestDTO;
+import de.cocondo.app.system.dto.PagedResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
@@ -25,6 +26,27 @@ import java.util.List;
 public class ApplicationScopeController {
 
     private final PermissionManagementDomainService permissionManagementDomainService;
+
+    @GetMapping("/list")
+    public PagedResponseDTO<ApplicationScopeDTO> listPaged(
+            @RequestParam(name = "page", defaultValue = "0") int page,
+            @RequestParam(name = "size", defaultValue = "20") int size,
+            @RequestParam(name = "sortBy", defaultValue = "applicationKey") String sortBy,
+            @RequestParam(name = "sortDir", defaultValue = "asc") String sortDir,
+            @RequestParam(name = "applicationKey", required = false) String applicationKey,
+            @RequestParam(name = "stageKey", required = false) String stageKey,
+            @RequestParam(name = "description", required = false) String description
+    ) {
+        return permissionManagementDomainService.listApplicationScopesPaged(
+                page,
+                size,
+                sortBy,
+                sortDir,
+                applicationKey,
+                stageKey,
+                description
+        );
+    }
 
     @GetMapping
     public List<ApplicationScopeDTO> list() {

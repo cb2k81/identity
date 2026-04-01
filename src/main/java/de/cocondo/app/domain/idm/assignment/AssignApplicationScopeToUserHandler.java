@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_SCOPE_ASSIGN;
 
@@ -39,6 +41,13 @@ public class AssignApplicationScopeToUserHandler {
 
         ApplicationScope scope = applicationScopeEntityService.loadById(request.getApplicationScopeId())
                 .orElseThrow(() -> new IllegalArgumentException("ApplicationScope not found"));
+
+        if (assignmentService.existsByUserAccountIdAndApplicationScopeId(user.getId(), scope.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "ApplicationScope is already assigned to user"
+            );
+        }
 
         UserApplicationScopeAssignment assignment = new UserApplicationScopeAssignment();
         assignment.setUserAccount(user);

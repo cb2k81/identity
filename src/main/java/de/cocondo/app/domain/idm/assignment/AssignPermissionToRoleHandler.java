@@ -7,9 +7,11 @@ import de.cocondo.app.domain.idm.role.Role;
 import de.cocondo.app.domain.idm.role.RoleEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_ROLE_PERMISSION_ASSIGN;
 
@@ -36,6 +38,13 @@ public class AssignPermissionToRoleHandler {
                 .equals(permission.getApplicationScope().getId())) {
             log.warn("Scope violation in RolePermissionAssignment");
             throw new IllegalArgumentException("Role and Permission belong to different scope");
+        }
+
+        if (assignmentService.existsByRoleIdAndPermissionId(role.getId(), permission.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Permission is already assigned to role"
+            );
         }
 
         RolePermissionAssignment assignment = new RolePermissionAssignment();

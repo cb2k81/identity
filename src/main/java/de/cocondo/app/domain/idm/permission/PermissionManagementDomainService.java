@@ -3,11 +3,13 @@ package de.cocondo.app.domain.idm.permission;
 import de.cocondo.app.domain.idm.scope.CreateApplicationScopeHandler;
 import de.cocondo.app.domain.idm.scope.DeleteApplicationScopeHandler;
 import de.cocondo.app.domain.idm.scope.ListApplicationScopesHandler;
+import de.cocondo.app.domain.idm.scope.ListApplicationScopesPagedHandler;
 import de.cocondo.app.domain.idm.scope.ReadApplicationScopeHandler;
 import de.cocondo.app.domain.idm.scope.UpdateApplicationScopeHandler;
 import de.cocondo.app.domain.idm.scope.dto.ApplicationScopeDTO;
 import de.cocondo.app.domain.idm.scope.dto.CreateApplicationScopeRequestDTO;
 import de.cocondo.app.domain.idm.scope.dto.UpdateApplicationScopeRequestDTO;
+import de.cocondo.app.system.dto.PagedResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +30,7 @@ public class PermissionManagementDomainService {
 
     private final CreateApplicationScopeHandler createApplicationScopeHandler;
     private final ListApplicationScopesHandler listApplicationScopesHandler;
+    private final ListApplicationScopesPagedHandler listApplicationScopesPagedHandler;
     private final ReadApplicationScopeHandler readApplicationScopeHandler;
     private final UpdateApplicationScopeHandler updateApplicationScopeHandler;
     private final DeleteApplicationScopeHandler deleteApplicationScopeHandler;
@@ -44,6 +47,21 @@ public class PermissionManagementDomainService {
      */
     public List<ApplicationScopeDTO> listApplicationScopes() {
         return listApplicationScopesHandler.handle();
+    }
+
+    /**
+     * Returns paged ApplicationScopes for UI list usage.
+     */
+    public PagedResponseDTO<ApplicationScopeDTO> listApplicationScopesPaged(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            String applicationKey,
+            String stageKey,
+            String description
+    ) {
+        return listApplicationScopesPagedHandler.handle(page, size, sortBy, sortDir, applicationKey, stageKey, description);
     }
 
     /**

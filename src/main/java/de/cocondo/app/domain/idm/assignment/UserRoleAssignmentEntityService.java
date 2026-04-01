@@ -55,6 +55,10 @@ public class UserRoleAssignmentEntityService {
         );
     }
 
+    public boolean existsByUserAccountIdAndRoleId(String userAccountId, String roleId) {
+        return repository.existsByUserAccount_IdAndRole_Id(userAccountId, roleId);
+    }
+
     @Transactional
     public UserRoleAssignment save(UserRoleAssignment assignment) {
         return repository.save(assignment);

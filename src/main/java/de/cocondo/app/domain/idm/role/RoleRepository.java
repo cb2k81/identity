@@ -1,6 +1,7 @@
 package de.cocondo.app.domain.idm.role;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 
 import java.util.Optional;
 
@@ -12,7 +13,7 @@ import java.util.Optional;
  * - No business logic
  * - No security logic
  */
-public interface RoleRepository extends JpaRepository<Role, String> {
+public interface RoleRepository extends JpaRepository<Role, String>, JpaSpecificationExecutor<Role> {
 
     Optional<Role> findByApplicationScope_IdAndName(String applicationScopeId, String name);
 

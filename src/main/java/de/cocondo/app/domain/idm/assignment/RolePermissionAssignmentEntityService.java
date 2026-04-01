@@ -27,6 +27,14 @@ public class RolePermissionAssignmentEntityService {
         return repository.findAllByRole_Id(roleId);
     }
 
+    public List<RolePermissionAssignment> loadAllByPermissionId(String permissionId) {
+        return repository.findAllByPermission_Id(permissionId);
+    }
+
+    public boolean existsByRoleIdAndPermissionId(String roleId, String permissionId) {
+        return repository.existsByRole_IdAndPermission_Id(roleId, permissionId);
+    }
+
     @Transactional
     public RolePermissionAssignment save(RolePermissionAssignment assignment) {
         return repository.save(assignment);
@@ -35,9 +43,5 @@ public class RolePermissionAssignmentEntityService {
     @Transactional
     public void delete(RolePermissionAssignment assignment) {
         repository.delete(assignment);
-    }
-
-    public List<RolePermissionAssignment> loadAllByPermissionId(String permissionId) {
-        return repository.findAllByPermission_Id(permissionId);
     }
 }

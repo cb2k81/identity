@@ -2,6 +2,7 @@ package de.cocondo.app.domain.idm.assignment;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -18,6 +19,10 @@ public interface UserApplicationScopeAssignmentRepository extends JpaRepository<
             String userAccountId,
             String applicationScopeId
     );
+
+    List<UserApplicationScopeAssignment> findAllByUserAccount_Id(String userAccountId);
+
+    List<UserApplicationScopeAssignment> findAllByApplicationScope_Id(String applicationScopeId);
 
     boolean existsByUserAccount_IdAndApplicationScope_Id(String userAccountId, String applicationScopeId);
 

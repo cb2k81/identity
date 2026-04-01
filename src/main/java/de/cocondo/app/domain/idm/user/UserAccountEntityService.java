@@ -1,6 +1,9 @@
 package de.cocondo.app.domain.idm.user;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -53,6 +56,27 @@ public class UserAccountEntityService {
      */
     public List<UserAccount> loadAll() {
         return userAccountRepository.findAll();
+    }
+
+    /**
+     * Loads UserAccount aggregates paged.
+     *
+     * @param pageable page request
+     * @return page of UserAccount aggregates
+     */
+    public Page<UserAccount> loadPage(Pageable pageable) {
+        return userAccountRepository.findAll(pageable);
+    }
+
+    /**
+     * Loads filtered and paged UserAccount aggregates.
+     *
+     * @param specification query specification
+     * @param pageable      page request
+     * @return page of filtered UserAccount aggregates
+     */
+    public Page<UserAccount> loadPage(Specification<UserAccount> specification, Pageable pageable) {
+        return userAccountRepository.findAll(specification, pageable);
     }
 
     /**

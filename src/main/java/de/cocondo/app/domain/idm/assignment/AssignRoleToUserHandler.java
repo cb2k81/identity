@@ -10,6 +10,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_ROLE_ASSIGN;
 
@@ -39,6 +41,13 @@ public class AssignRoleToUserHandler {
 
         Role role = roleEntityService.loadById(request.getRoleId())
                 .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+
+        if (assignmentService.existsByUserAccountIdAndRoleId(user.getId(), role.getId())) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Role is already assigned to user"
+            );
+        }
 
         UserRoleAssignment assignment = new UserRoleAssignment();
         assignment.setUserAccount(user);

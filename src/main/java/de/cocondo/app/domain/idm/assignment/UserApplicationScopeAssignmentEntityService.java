@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -23,6 +24,14 @@ public class UserApplicationScopeAssignmentEntityService {
             String applicationScopeId
     ) {
         return repository.findByUserAccount_IdAndApplicationScope_Id(userAccountId, applicationScopeId);
+    }
+
+    public List<UserApplicationScopeAssignment> loadAllByUserAccountId(String userAccountId) {
+        return repository.findAllByUserAccount_Id(userAccountId);
+    }
+
+    public List<UserApplicationScopeAssignment> loadAllByApplicationScopeId(String applicationScopeId) {
+        return repository.findAllByApplicationScope_Id(applicationScopeId);
     }
 
     public boolean existsByUserAccountIdAndApplicationScopeId(String userAccountId, String applicationScopeId) {

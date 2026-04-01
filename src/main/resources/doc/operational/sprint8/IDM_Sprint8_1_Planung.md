@@ -2,28 +2,43 @@
 
 Stand: 2026-03-19
 Sprint: 8
-Ziel: Produktive Session-/Token-Lifecycle-Stufe nach MVP
+Ziel: Nutzbares MVP inkl. Admin-UI-Fähigkeit **und** produktive Session-/Token-Lifecycle-Stufe
 Status: Geplant
 
 ---
 
 # 1. Zielsetzung des Sprints
 
-Sprint 8 verfolgt das Ziel, den nach Sprint 7 erreichten **MVP-fähigen IDM-Stand** um die **nächste zwingend produktionsrelevante Authentifizierungsstufe** zu ergänzen.
+Sprint 8 verfolgt das Ziel, den nach Sprint 7 erreichten **technisch belastbaren IDM-Stand** gezielt zu einem **nutzbaren MVP** weiterzuführen und gleichzeitig die **nächste zwingend produktionsrelevante Authentifizierungsstufe** zu ergänzen.
 
-Der aktuelle Stand ist für einen sauberen MVP-Release fachlich und technisch belastbar, bildet jedoch noch nicht den vollständigen produktiven Lebenszyklus von Tokens und Sitzungen ab.
+Die ursprüngliche Planung fokussierte sich auf den produktiven Session-/Token-Lifecycle. Auf Basis der aktuellen Baseline-Prüfung wurde jedoch verbindlich festgestellt, dass für ein tatsächlich nutzbares MVP zusätzlich noch **UI-relevante API-Lücken** geschlossen werden müssen.
 
-Sprint 8 schließt genau diese Lücke – **ohne** den IDM-Service in Richtung vollwertiger OAuth2-/OIDC-Server zu überfrachten.
+Ein MVP nach Sprint 8 ist nur dann erreicht, wenn:
 
-Kernziel von Sprint 8 ist daher die Einführung eines **klaren, kontrollierbaren und widerrufbaren Session-/Refresh-Konzepts** als Ergänzung zum bestehenden JWT-Access-Token-Modell.
+1. ein Admin-UI **sofort sauber** auf die IDM-REST-API aufsetzen kann,
+2. Listen-APIs **generisch** für UI-Komponenten nutzbar sind,
+3. Relationen / Zuordnungen **nicht nur schreibbar, sondern auch lesbar und anzeigbar** sind,
+4. Fehlerbilder **UI-tauglich, deterministisch und fachlich stabil** sind,
+5. zusätzlich ein produktiv nutzbarer **Refresh-/Session-Lifecycle** existiert.
+
+Sprint 8 ist damit **kein reiner Post-MVP-Auth-Sprint mehr**, sondern der **MVP-Abschlusssprint mit produktiver Auth-Lifecycle-Härtung**.
+
+Kernziel von Sprint 8 ist daher die Kombination aus:
+
+* **MVP-API-Readiness für das Admin-UI**
+* **klarer, kontrollierbarer und widerrufbarer Session-/Refresh-Stufe** als Ergänzung zum bestehenden JWT-Access-Token-Modell
 
 Sprint 8 ist erfolgreich abgeschlossen, wenn:
 
-1. der Unterschied zwischen **Access Token** und **Refresh-/Session-Kontext** fachlich und technisch eindeutig umgesetzt ist,
-2. ein produktiv nutzbarer **Refresh-Flow** existiert,
-3. aktive Sessions gezielt invalidiert werden können,
-4. Logout und Logout-all deterministisch funktionieren,
-5. die Lösung mit dem aktuellen IDM-Baseline-Modell, den V2-Stammdokumenten und der geplanten Nutzung durch **Personnel** und **GWC** konsistent bleibt.
+1. die Management-APIs für **Application Scopes, Rollen und Benutzer** UI-fähig sind,
+2. Listen generisch **filterbar, sortierbar und paginierbar** sind,
+3. Relationen / Zuordnungen vollständig **lesbar und anzeigbar** sind,
+4. Duplicate-/Validierungs-/NotFound-Fehlerbilder UI-tauglich und konsistent sind,
+5. der Unterschied zwischen **Access Token** und **Refresh-/Session-Kontext** fachlich und technisch eindeutig umgesetzt ist,
+6. ein produktiv nutzbarer **Refresh-Flow** existiert,
+7. aktive Sessions gezielt invalidiert werden können,
+8. Logout und Logout-all deterministisch funktionieren,
+9. die Lösung mit dem aktuellen IDM-Baseline-Modell, den V2-Stammdokumenten und der geplanten Nutzung durch **Personnel** und **GWC** konsistent bleibt.
 
 ---
 
@@ -39,8 +54,32 @@ Der aktuelle, durch Textexport belegte Stand des IDM umfasst bereits:
 * deterministisches XML-Bootstrap
 * konfigurierbaren Login-Schutz
 * stabile Security-/Authorization-Basis nach Sprint 7
+* CRUD-REST-Endpunkte für:
+
+    * Application Scopes
+    * Rollen
+    * Benutzer (mit aktuellem MVP-Umfang)
+* Assignment-Endpunkte für:
+
+    * User ↔ Scope (Assign / Unassign)
+    * User ↔ Role (Assign / Unassign + Teil-Read)
+    * Role ↔ Permission (Assign / Unassign)
 
 Nicht als bereits vollständig umgesetzt zu behandeln sind aktuell:
+
+## 2.1 MVP-Readiness-Gaps (verbindlich offen)
+
+* generische Listenfähigkeit für Admin-UI-Komponenten
+
+    * Filterung
+    * Sortierung
+    * Pagination
+* UI-stabile Listen-Response-Strukturen
+* vollständige Read-/List-Fähigkeit aller relevanten Relationen
+* UI-taugliche, konsistente Fehlerbilder für Management-/Assignment-APIs
+* saubere fachliche Behandlung von Duplicate-Assignments (statt technischer 5xx-Fehler)
+
+## 2.2 Auth-Lifecycle-Gaps (verbindlich offen)
 
 * `POST /auth/refresh`
 * `POST /auth/logout`
@@ -49,7 +88,7 @@ Nicht als bereits vollständig umgesetzt zu behandeln sind aktuell:
 * persistierter Refresh-/Session-Kontext
 * Passwort-Reset- und E-Mail-Verification-Flows
 
-Diese Punkte sind in den V2-Stammdokumenten bereits als **nächste produktive Härtungsstufe** definiert und werden in Sprint 8 nun gezielt operationalisiert.
+Diese Punkte sind in den V2-Stammdokumenten bereits als **nächste produktive Härtungsstufe** definiert und werden in Sprint 8 nun gezielt operationalisiert. Die **MVP-Readiness-Gaps** werden aufgrund der Baseline-Analyse nun ebenfalls verbindlich in Sprint 8 aufgenommen.
 
 ---
 
@@ -57,29 +96,87 @@ Diese Punkte sind in den V2-Stammdokumenten bereits als **nächste produktive H�
 
 ## 3.1 Im Scope (verbindlich)
 
-Sprint 8 umfasst ausschließlich die **nächste produktive Auth-Lifecycle-Stufe**:
+Sprint 8 umfasst verbindlich **zwei zusammengehörige Teilziele**:
 
-### A. Token-Modell präzisieren und umsetzen
+1. **MVP-API-Readiness für das Admin-UI**
+2. **nächste produktive Auth-Lifecycle-Stufe**
+
+---
+
+## 3.2 Teil A – MVP-API-Readiness (neu verbindlich im Scope)
+
+### A1. Listenstandard für Admin-UI
+
+Für die relevanten Management- und Relations-APIs ist ein konsistenter Listenstandard einzuführen.
+
+Verbindliche Ziele:
+
+* **serverseitige Pagination**
+* **serverseitige Sortierung**
+* **serverseitige Filterung**
+* für generische UI-Komponenten stabil nutzbare Listen-Responses
+
+Mindestens betroffen:
+
+* Benutzer
+* Rollen
+* Application Scopes
+* Relation-Listen / Zuordnungslisten
+
+### A2. Relation-Read-Completeness
+
+Relationen dürfen nicht nur schreibbar sein, sondern müssen für das Admin-UI vollständig lesbar sein.
+
+Verbindliche Ziele:
+
+* bestehende Relation-Read-Endpunkte prüfen und auf den Listenstandard heben
+* fehlende Relation-Read-Endpunkte ergänzen
+* Zuordnungen im UI eindeutig anzeigbar machen
+
+Mindestens fachlich relevant:
+
+* User ↔ Scope
+* User ↔ Role
+* Role ↔ Permission (soweit Rollen-/Rechte-Management Teil des MVP ist; fachlich stark empfohlen)
+
+### A3. UI-taugliche Fehlerbilder
+
+Verbindliche Ziele:
+
+* keine technischen 5xx-Fehler als API-Vertrag bei fachlich erwartbaren Situationen
+* deterministische Behandlung von:
+
+    * Duplicate-Assignments
+    * Not Found
+    * Validation-Fehlern
+    * fachlich unzulässigen Zuständen
+* stabile, UI-verwertbare Fehlerstruktur
+
+---
+
+## 3.3 Teil B – Produktive Auth-Lifecycle-Stufe (ursprünglicher Sprint-8-Kern)
+
+### B1. Token-Modell präzisieren und umsetzen
 
 * klare Trennung zwischen:
 
     * **Access Token** (kurzlebiges JWT für API-Zugriffe)
     * **Refresh-/Session-Kontext** (serverseitig kontrollierbar, widerrufbar)
 
-### B. Session-/Refresh-Domäne minimal einführen
+### B2. Session-/Refresh-Domäne minimal einführen
 
 * minimale persistente Repräsentation eines aktiven Login-Kontexts
 * keine Persistenz von Access Tokens
 * keine Blacklist für Access Tokens
 * nur kontrollierbare Refresh-/Session-Metadaten
 
-### C. Produktive Auth-Endpunkte ergänzen
+### B3. Produktive Auth-Endpunkte ergänzen
 
 * `POST /auth/refresh`
 * `POST /auth/logout`
 * `POST /auth/logout-all`
 
-### D. Session-Invalidierung
+### B4. Session-Invalidierung
 
 * gezielte Invalidierung einzelner aktiver Session-Kontexte
 * globale Invalidierung aller aktiven Session-Kontexte eines Users
@@ -90,7 +187,7 @@ Sprint 8 umfasst ausschließlich die **nächste produktive Auth-Lifecycle-Stufe*
     * Benutzer-Deaktivierung
     * Passwortänderung (mindestens konzeptionell vorbereiten; idealerweise direkt umsetzen)
 
-### E. Test- und Fehlerbild absichern
+### B5. Test- und Fehlerbild absichern
 
 * positive und negative Integrationstests für Refresh / Logout / Logout-all
 * deterministische Fehlerszenarien
@@ -98,7 +195,7 @@ Sprint 8 umfasst ausschließlich die **nächste produktive Auth-Lifecycle-Stufe*
 
 ---
 
-## 3.2 Explizit nicht im Scope
+## 3.4 Explizit nicht im Scope
 
 Sprint 8 umfasst **nicht**:
 
@@ -125,16 +222,21 @@ Der IDM bleibt ein **leichtgewichtiger, kontrollierter AuthN/AuthZ-Service**.
 
 Das bestehende JWT-Modell wird **nicht ersetzt**, sondern um einen serverseitig kontrollierbaren Session-Layer ergänzt.
 
-Verbindliche Leitentscheidung:
+Zusätzlich werden die bestehenden Management-APIs auf einen **UI-fähigen, generischen Listen- und Fehlerbild-Standard** gehoben.
+
+Verbindliche Leitentscheidungen:
 
 * **Access Token** bleibt kurzlebig und stateless.
 * **Refresh-/Session-Kontext** wird serverseitig kontrolliert.
 * **Keine Persistenz von Access Tokens.**
 * **Keine globale Access-Token-Blacklist.**
 * Widerrufbarkeit wird über den Session-/Refresh-Layer gelöst.
+* Management- und Relations-Listen müssen für generische UI-Komponenten konsistent und stabil nutzbar sein.
+* Fehlerbilder müssen fachlich deterministisch und UI-verwertbar sein.
 
 Damit bleibt die Lösung:
 
+* MVP-fähig,
 * produktionsfähig,
 * horizontal skalierbar,
 * architekturkonform,
@@ -144,7 +246,25 @@ Damit bleibt die Lösung:
 
 # 5. Fachlich-technisches Zielbild Sprint 8
 
-## 5.1 Login-Flow nach Sprint 8
+## 5.1 Admin-UI-Fähigkeit nach Sprint 8 (neu verbindlich)
+
+Nach Sprint 8 muss ein Admin-UI unmittelbar und ohne projektspezifische Workarounds auf die IDM-API aufsetzen können.
+
+Das bedeutet verbindlich:
+
+1. zentrale Listen liefern serverseitig:
+
+    * Pagination
+    * Sortierung
+    * Filterung
+2. Listen-Responses sind für generische UI-Komponenten stabil verwendbar
+3. Relationen / Zuordnungen sind lesbar und anzeigbar
+4. erwartbare fachliche Fehler werden als UI-taugliche 4xx-/fachliche Fehlerbilder geliefert
+5. technische Persistenz-/Constraint-Fehler dürfen nicht den öffentlichen API-Vertrag bilden
+
+---
+
+## 5.2 Login-Flow nach Sprint 8
 
 ### Vor Sprint 8 (Ist)
 
@@ -168,7 +288,7 @@ Damit bleibt die Lösung:
 
 ---
 
-## 5.2 Refresh-Flow
+## 5.3 Refresh-Flow
 
 1. Client ruft `POST /auth/refresh` auf
 2. IDM validiert den Refresh-/Session-Kontext
@@ -189,7 +309,7 @@ Damit bleibt die Lösung:
 
 ---
 
-## 5.3 Logout-Flow
+## 5.4 Logout-Flow
 
 ### `POST /auth/logout`
 
@@ -241,7 +361,36 @@ Die Session-Repräsentation muss mindestens abbilden:
 
 # 7. API-Schnittstellen Sprint 8
 
-## 7.1 Neue Endpunkte
+## 7.1 Neue / erweiterte Management- und Relations-APIs (neu verbindlich)
+
+### Zielbild
+
+Die bestehenden Management- und Relations-Endpunkte bleiben grundsätzlich stabil, werden aber um die für das Admin-UI notwendige Listen- und Read-Fähigkeit ergänzt bzw. auf einen konsistenten Listenstandard gehoben.
+
+Verbindliche Ziele:
+
+* bestehende Listen-Endpunkte für Benutzer, Rollen und Scopes auf den neuen Listenstandard heben
+* bestehende Relation-Read-Endpunkte auf denselben Listenstandard heben
+* fehlende Relation-Read-Endpunkte ergänzen
+* keine unnötige Pfad-Neustrukturierung ohne Baseline-Zwang
+
+### Mindestfachlichkeit
+
+* Benutzer-Liste: filterbar / sortierbar / paginierbar
+* Rollen-Liste: filterbar / sortierbar / paginierbar
+* Scopes-Liste: filterbar / sortierbar / paginierbar
+* User ↔ Scope: lesbar / anzeigbar
+* User ↔ Role: lesbar / anzeigbar
+* Role ↔ Permission: lesbar / anzeigbar (für sauberes Rollen-/Rechte-UI fachlich stark empfohlen)
+
+**Wichtig:**
+
+* Konkrete Pfade, Request-Parameter, DTOs und Response-Wrapper werden **erst in Phase 1 gegen die reale Baseline** final festgelegt.
+* Im Plan werden bewusst keine neuen Klassen, DTOs oder Endpunkt-Signaturen als bereits existent vorausgesetzt.
+
+---
+
+## 7.2 Neue Auth-Endpunkte
 
 ### `POST /auth/refresh`
 
@@ -276,15 +425,18 @@ Antwort:
 
 ---
 
-## 7.2 Bestehende Endpunkte (weiterhin verbindlich)
+## 7.3 Bestehende Endpunkte (weiterhin verbindlich)
 
 * `POST /auth/login`
 * `GET /auth/me`
+* bestehende Management-Endpunkte für Scopes / Rollen / Benutzer
+* bestehende Assignment-Endpunkte
 
 Wichtig:
 
-* Bestehende Pfade bleiben stabil.
+* Bestehende Pfade bleiben nach Möglichkeit stabil.
 * Keine unnötige Pfad-Neustrukturierung in Sprint 8.
+* Erweiterungen erfolgen baseline-konform und regressionsarm.
 
 ---
 
@@ -303,6 +455,11 @@ Sprint 8 muss für den GWC ein klares Client-Verhalten ermöglichen:
 * bei Access-Token-Ablauf kann der GWC kontrolliert `POST /auth/refresh` nutzen
 * bei Logout wird die Session sauber beendet
 
+Zusätzlich wichtig:
+
+* ein GWC-Admin-UI bzw. administrative Oberflächen können auf generische Listen- und Relations-APIs aufsetzen
+* Backend-Fehlerbilder bleiben stabil und UI-tauglich
+
 Wichtig:
 
 * Sprint 8 liefert die **Backend-Verträge**.
@@ -315,6 +472,7 @@ Für Personnel ist Sprint 8 relevant, weil:
 * Personnel als Fachanwendung IDM-Tokens konsumiert
 * spätere langlebigere UI-Sitzungen produktiv einen Refresh-Mechanismus benötigen
 * Logout-all und Session-Invalidierung für Admin-/Sicherheitsfälle fachlich relevant sind
+* administrative Oberflächen auf stabile Listen- und Relations-Verträge angewiesen sind
 
 Sprint 8 implementiert jedoch **nur IDM-seitige Infrastruktur**, keine Personnel-spezifische Fachlogik.
 
@@ -322,15 +480,19 @@ Sprint 8 implementiert jedoch **nur IDM-seitige Infrastruktur**, keine Personnel
 
 # 9. Phasenmodell Sprint 8
 
-## Phase 1 – Architektur- und Modellpräzisierung
+## Phase 1 – Architektur- und Modellpräzisierung (erweitert)
 
 Ziel:
 
-* finaler technischer Schnitt für Session-/Refresh-Modell festlegen
-* Entity-/DTO-/Service-Schnitt minimal und deterministisch definieren
+* finalen technischen Schnitt für **MVP-Readiness + Session-/Refresh-Modell** festlegen
+* Entity-/DTO-/Service-/Controller-Schnitt minimal und deterministisch definieren
+* ADR-Bedarf für Listenstandard / Fehlerbild / Session-Modell prüfen
 
 Ergebnisse:
 
+* Listenstandard fachlich-technisch finalisiert
+* Relation-Read-Strategie finalisiert
+* Fehlerbild-Strategie finalisiert
 * Session-Konzept finalisiert
 * Persistenzstrategie finalisiert
 * Request-/Response-DTOs festgelegt
@@ -338,7 +500,40 @@ Ergebnisse:
 
 ---
 
-## Phase 2 – Login-Erweiterung
+## Phase 2 – Listenstandard und Management-API-Härtung
+
+Ziel:
+
+* zentrale Management-APIs UI-fähig machen
+
+Ergebnisse:
+
+* Benutzer-Liste generisch nutzbar
+* Rollen-Liste generisch nutzbar
+* Scopes-Liste generisch nutzbar
+* Filter / Sortierung / Pagination deterministisch testbar
+* keine unnötigen Regressionen der bestehenden Pfade
+
+---
+
+## Phase 3 – Relation-Read-Completeness und UI-Fehlerbilder
+
+Ziel:
+
+* Relationen vollständig lesbar machen
+* Fehlerbilder für Admin-UI stabilisieren
+
+Ergebnisse:
+
+* User ↔ Scope lesbar / anzeigbar
+* User ↔ Role auf Listenstandard gehoben
+* Role ↔ Permission lesbar / anzeigbar (soweit final als MVP-verbindlich bestätigt)
+* Duplicate-Assignments liefern fachlich deterministische 4xx-Fehler
+* erwartbare Fehlerfälle sind UI-tauglich
+
+---
+
+## Phase 4 – Login-Erweiterung
 
 Ziel:
 
@@ -352,7 +547,7 @@ Ergebnisse:
 
 ---
 
-## Phase 3 – Refresh-Endpunkt
+## Phase 5 – Refresh-Endpunkt
 
 Ziel:
 
@@ -365,7 +560,7 @@ Ergebnisse:
 
 ---
 
-## Phase 4 – Logout / Logout-all
+## Phase 6 – Logout / Logout-all
 
 Ziel:
 
@@ -379,7 +574,7 @@ Ergebnisse:
 
 ---
 
-## Phase 5 – Testhärtung und Regression
+## Phase 7 – Testhärtung und Regression
 
 Ziel:
 
@@ -387,13 +582,23 @@ Ziel:
 
 Pflichttests:
 
+### Management / UI-Readiness
+
+* Benutzer-Liste filterbar / sortierbar / paginierbar
+* Rollen-Liste filterbar / sortierbar / paginierbar
+* Scopes-Liste filterbar / sortierbar / paginierbar
+* Relation-Listen lesbar / anzeigbar
+* Duplicate-Assignment liefert fachlichen Fehler statt technischem 5xx
+* bestehende Management-APIs regressionsfrei
+
+### Auth Lifecycle
+
 * Login erzeugt Session-Kontext
 * Refresh mit gültigem Refresh-/Session-Kontext erfolgreich
 * Refresh mit ungültigem / widerrufenem / abgelaufenem Kontext schlägt fehl
 * Logout invalidiert aktuelle Session
 * Logout-all invalidiert alle Sessions
 * bestehende `/auth/me`-Funktionalität unverändert
-* bestehende Management-APIs regressionsfrei
 
 ---
 
@@ -401,25 +606,36 @@ Pflichttests:
 
 ## 10.1 Risiko: Sprint wird zu breit
 
-Wenn Passwort-Reset, E-Mail-Verification, Key-Rotation oder asymmetrische Signatur zusätzlich aufgenommen werden, verliert Sprint 8 seinen klaren Fokus.
+Durch Aufnahme der MVP-Readiness-Themen wird Sprint 8 breiter als ursprünglich geplant.
 
-**Gegenmaßnahme:** Sprint 8 strikt auf Session-/Refresh-Lifecycle begrenzen.
+**Gegenmaßnahme:** strikte Phasentrennung und klare Priorisierung:
 
-## 10.2 Risiko: Zu komplexe Token-Architektur
+1. MVP-Readiness (Listen / Relationen / Fehlerbilder)
+2. danach Auth-Lifecycle
+
+Wenn nötig, ist ein sauber definierter Zwischenstand nach Phase 3 herzustellen.
+
+## 10.2 Risiko: Uneinheitlicher Listenstandard
+
+Wenn einzelne Listen unterschiedlich modelliert werden, kann das Admin-UI nicht generisch aufsetzen.
+
+**Gegenmaßnahme:** in Phase 1 einen verbindlichen Listenstandard definieren und für alle relevanten Endpunkte konsistent anwenden.
+
+## 10.3 Risiko: Zu komplexe Token-Architektur
 
 Ein halb implementierter OAuth2-Ansatz würde Komplexität erzeugen, ohne den Projektbedarf zu treffen.
 
 **Gegenmaßnahme:** nur leichtgewichtiger, interner Refresh-/Session-Mechanismus.
 
-## 10.3 Risiko: Falsche Invalidierungsstrategie
+## 10.4 Risiko: Falsche Invalidierungsstrategie
 
 Wenn versucht wird, bereits ausgestellte Access Tokens aktiv zu „widerrufen“, entsteht unnötiger technischer Overhead.
 
 **Gegenmaßnahme:** Access Tokens kurzlebig halten; Widerruf nur über Session-/Refresh-Layer.
 
-## 10.4 Risiko: GWC-Integration bleibt unklar
+## 10.5 Risiko: GWC-/Personnel-Integration bleibt unklar
 
-Wenn die Backend-Verträge nicht eindeutig sind, verschiebt sich die Unklarheit in den GWC.
+Wenn Backend-Verträge für Listen, Relationen oder Auth nicht eindeutig sind, verschiebt sich die Unklarheit in die Consumer.
 
 **Gegenmaßnahme:** Request-/Response-Verträge in Sprint 8 explizit und stabil definieren.
 
@@ -429,23 +645,41 @@ Wenn die Backend-Verträge nicht eindeutig sind, verschiebt sich die Unklarheit 
 
 Sprint 8 ist abgeschlossen, wenn:
 
-1. die Trennung zwischen **Access Token** und **Refresh-/Session-Kontext** technisch umgesetzt ist,
-2. `POST /auth/login` Access Token plus Refresh-/Session-Kontext liefert,
-3. `POST /auth/refresh` implementiert und testabgedeckt ist,
-4. `POST /auth/logout` implementiert und testabgedeckt ist,
-5. `POST /auth/logout-all` implementiert und testabgedeckt ist,
-6. aktive Sessions serverseitig widerrufbar sind,
-7. keine Access Tokens serverseitig persistiert oder blacklisted werden,
-8. bestehende Login-/JWT-/Management-Tests regressionsfrei grün bleiben,
-9. die Lösung mit den V2-Stammdokumenten und den bestehenden ADR-Linien konsistent ist.
+## MVP-Readiness
+
+1. die Management-APIs für **Application Scopes, Rollen und Benutzer** für generische Admin-UI-Komponenten nutzbar sind,
+2. relevante Listen serverseitig **filterbar, sortierbar und paginierbar** sind,
+3. Relationen / Zuordnungen im MVP fachlich vollständig **lesbar und anzeigbar** sind,
+4. UI-relevante Fehlerbilder konsistent, deterministisch und fachlich stabil sind,
+5. Duplicate-Assignments keine technischen 5xx-Fehler mehr erzeugen,
+
+## Auth Lifecycle
+
+6. die Trennung zwischen **Access Token** und **Refresh-/Session-Kontext** technisch umgesetzt ist,
+7. `POST /auth/login` Access Token plus Refresh-/Session-Kontext liefert,
+8. `POST /auth/refresh` implementiert und testabgedeckt ist,
+9. `POST /auth/logout` implementiert und testabgedeckt ist,
+10. `POST /auth/logout-all` implementiert und testabgedeckt ist,
+11. aktive Sessions serverseitig widerrufbar sind,
+12. keine Access Tokens serverseitig persistiert oder blacklisted werden,
+13. bestehende Login-/JWT-/Management-Tests regressionsfrei grün bleiben,
+14. die Lösung mit den V2-Stammdokumenten und den bestehenden ADR-Linien konsistent ist.
 
 ---
 
 # 12. Ergebnis / Leitentscheidung
 
-Sprint 8 ist der **erste echte Post-MVP-Produktionssprint** des IDM.
+Sprint 8 ist **nicht mehr nur ein Post-MVP-Produktionssprint**, sondern der **verbindliche MVP-Abschlusssprint mit produktiver Auth-Lifecycle-Härtung**.
 
-Er erweitert den erreichten MVP nicht breitflächig, sondern gezielt an genau der Stelle, die für reale produktive Nutzung am wichtigsten ist:
+Er erweitert den erreichten Stand gezielt an den zwei Stellen, die für reale Nutzung am wichtigsten sind:
+
+## A. Nutzbares MVP / Admin-UI-Fähigkeit
+
+* **generische Listenfähigkeit**
+* **lesbare Relationen / Zuordnungen**
+* **UI-taugliche Fehlerbilder**
+
+## B. Produktive Auth-Härtung
 
 * **kontrollierbarer Session-Lifecycle**
 * **sauberer Refresh-Mechanismus**
@@ -457,6 +691,7 @@ Damit bleibt das IDM:
 * leichtgewichtig,
 * architekturkonform,
 * konsistent zu Personnel und GWC,
+* MVP-fähig für ein sofort anschließbares Admin-UI,
 * und zugleich deutlich näher an echter Produktionsreife.
 
 ---
@@ -468,3 +703,9 @@ Nach Freigabe dieses Planungsdokuments erfolgt die Umsetzung **phasenweise und d
 Vor Beginn der Code-Umsetzung ist zunächst nur **Phase 1 (Architektur- und Modellpräzisierung)** detailliert gegen die reale Baseline herunterzubrechen.
 
 Es werden dabei ausdrücklich **keine Klassen, DTOs, Repositories oder Pfade vorab erfunden**, sondern ausschließlich auf dem real vorhandenen Projektstand aufgebaut.
+
+Wichtig:
+
+* Vor jeder Phase ist der ADR-Bedarf zu prüfen.
+* Nach jeder Phase muss ein klarer, testbarer Zwischenstand existieren.
+* Wenn sich innerhalb von Phase 1 zeigt, dass der bestehende Plan für Listenstandard oder Fehlerbild-Standard ohne zusätzliche Architekturentscheidung nicht deterministisch umsetzbar ist, wird die Umsetzung vorab gestoppt und per ADR / Klärung abgesichert.

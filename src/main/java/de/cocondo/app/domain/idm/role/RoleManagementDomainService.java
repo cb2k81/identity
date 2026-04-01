@@ -3,6 +3,7 @@ package de.cocondo.app.domain.idm.role;
 import de.cocondo.app.domain.idm.role.dto.CreateRoleRequestDTO;
 import de.cocondo.app.domain.idm.role.dto.RoleDTO;
 import de.cocondo.app.domain.idm.role.dto.UpdateRoleRequestDTO;
+import de.cocondo.app.system.dto.PagedResponseDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -19,6 +20,7 @@ public class RoleManagementDomainService {
 
     private final CreateRoleHandler createRoleHandler;
     private final ListRolesHandler listRolesHandler;
+    private final ListRolesPagedHandler listRolesPagedHandler;
     private final ReadRoleHandler readRoleHandler;
     private final UpdateRoleHandler updateRoleHandler;
     private final DeleteRoleHandler deleteRoleHandler;
@@ -29,6 +31,18 @@ public class RoleManagementDomainService {
 
     public List<RoleDTO> listRoles() {
         return listRolesHandler.handle();
+    }
+
+    public PagedResponseDTO<RoleDTO> listRolesPaged(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            String applicationScopeId,
+            String name,
+            Boolean systemProtected
+    ) {
+        return listRolesPagedHandler.handle(page, size, sortBy, sortDir, applicationScopeId, name, systemProtected);
     }
 
     public RoleDTO readRole(String roleId) {

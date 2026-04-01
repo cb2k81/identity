@@ -18,4 +18,5 @@ public interface RolePermissionAssignmentRepository extends JpaRepository<RolePe
 
     List<RolePermissionAssignment> findAllByPermission_Id(String permissionId);
 
+    boolean existsByRole_IdAndPermission_Id(String roleId, String permissionId);
 }

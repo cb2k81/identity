@@ -36,7 +36,7 @@ class RolePermissionAssignmentDuplicateIntegrationTest extends AbstractIdmIntegr
     private RolePermissionAssignmentRepository rolePermissionAssignmentRepository;
 
     @Test
-    void assigning_same_permission_to_same_role_twice_returns_server_error_and_does_not_create_duplicate() throws Exception {
+    void assigning_same_permission_to_same_role_twice_returns_conflict_and_does_not_create_duplicate() throws Exception {
 
         String token = loginAdminAndGetToken();
 
@@ -95,14 +95,12 @@ class RolePermissionAssignmentDuplicateIntegrationTest extends AbstractIdmIntegr
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
-        // current MVP state:
-        // duplicate protection is enforced by the database unique constraint.
-        // the API currently returns a server error instead of a domain-specific conflict response.
+        // second identical assignment -> now handled as domain-level conflict before DB unique constraint
         mockMvc.perform(post("/api/idm/assignments/role-permission")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
-                .andExpect(status().is5xxServerError());
+                .andExpect(status().isConflict());
 
         long matchingAssignments = rolePermissionAssignmentRepository.findAllByRole_Id(roleId)
                 .stream()

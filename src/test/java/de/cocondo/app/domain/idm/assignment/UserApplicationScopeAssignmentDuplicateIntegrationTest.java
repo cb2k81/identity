@@ -1,8 +1,7 @@
 package de.cocondo.app.domain.idm.assignment;
 
 import de.cocondo.app.domain.idm.AbstractIdmIntegrationTest;
-import de.cocondo.app.domain.idm.assignment.dto.AssignRoleToUserRequestDTO;
-import de.cocondo.app.domain.idm.role.dto.CreateRoleRequestDTO;
+import de.cocondo.app.domain.idm.assignment.dto.AssignApplicationScopeToUserRequestDTO;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeRepository;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
@@ -18,16 +17,16 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-class UserRoleAssignmentDuplicateIntegrationTest extends AbstractIdmIntegrationTest {
+class UserApplicationScopeAssignmentDuplicateIntegrationTest extends AbstractIdmIntegrationTest {
 
     @Autowired
     private ApplicationScopeRepository applicationScopeRepository;
 
     @Autowired
-    private UserRoleAssignmentRepository userRoleAssignmentRepository;
+    private UserApplicationScopeAssignmentRepository userApplicationScopeAssignmentRepository;
 
     @Test
-    void assigning_same_role_to_same_user_twice_returns_conflict_and_does_not_create_duplicate() throws Exception {
+    void assigning_same_scope_to_same_user_twice_returns_conflict_and_does_not_create_duplicate() throws Exception {
 
         String token = loginAdminAndGetToken();
 
@@ -35,31 +34,11 @@ class UserRoleAssignmentDuplicateIntegrationTest extends AbstractIdmIntegrationT
                 .findByApplicationKeyAndStageKey(applicationKey, stageKey)
                 .orElseThrow();
 
-        // create role
-        CreateRoleRequestDTO roleReq = new CreateRoleRequestDTO();
-        roleReq.setApplicationScopeId(scope.getId());
-        roleReq.setName("R_DUPLICATE");
-        roleReq.setDescription("role for duplicate assignment test");
-        roleReq.setSystemProtected(false);
-
-        String roleBody = mockMvc.perform(post("/api/idm/roles")
-                        .header("Authorization", "Bearer " + token)
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(roleReq)))
-                .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", not(blankOrNullString())))
-                .andExpect(jsonPath("$.name", is("R_DUPLICATE")))
-                .andReturn()
-                .getResponse()
-                .getContentAsString();
-
-        String roleId = objectMapper.readTree(roleBody).get("id").asText();
-
         // create user
         CreateUserRequestDTO userReq = new CreateUserRequestDTO();
-        userReq.setUsername("u_duplicate");
-        userReq.setDisplayName("User Duplicate");
-        userReq.setEmail("u_duplicate@test.local");
+        userReq.setUsername("u_scope_duplicate");
+        userReq.setDisplayName("User Scope Duplicate");
+        userReq.setEmail("u_scope_duplicate@test.local");
         userReq.setPassword("password");
 
         String userBody = mockMvc.perform(post("/api/idm/users")
@@ -68,45 +47,47 @@ class UserRoleAssignmentDuplicateIntegrationTest extends AbstractIdmIntegrationT
                         .content(objectMapper.writeValueAsString(userReq)))
                 .andExpect(status().isCreated())
                 .andExpect(jsonPath("$.id", not(blankOrNullString())))
-                .andExpect(jsonPath("$.username", is("u_duplicate")))
-                .andExpect(jsonPath("$.displayName", is("User Duplicate")))
-                .andExpect(jsonPath("$.email", is("u_duplicate@test.local")))
+                .andExpect(jsonPath("$.username", is("u_scope_duplicate")))
+                .andExpect(jsonPath("$.displayName", is("User Scope Duplicate")))
+                .andExpect(jsonPath("$.email", is("u_scope_duplicate@test.local")))
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
 
         String userId = objectMapper.readTree(userBody).get("id").asText();
 
-        AssignRoleToUserRequestDTO request = new AssignRoleToUserRequestDTO();
+        AssignApplicationScopeToUserRequestDTO request = new AssignApplicationScopeToUserRequestDTO();
         request.setUserAccountId(userId);
-        request.setRoleId(roleId);
+        request.setApplicationScopeId(scope.getId());
+
+        long totalAssignmentsBefore = userApplicationScopeAssignmentRepository.count();
 
         // first assignment
-        mockMvc.perform(post("/api/idm/assignments/user-role")
+        mockMvc.perform(post("/api/idm/assignments/user-scope")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk());
 
         assertThat(
-                userRoleAssignmentRepository.findAllByUserAccount_Id(userId)
-                        .stream()
-                        .filter(assignment -> assignment.getRole().getId().equals(roleId))
-                        .count()
-        ).isEqualTo(1);
+                userApplicationScopeAssignmentRepository.existsByUserAccount_IdAndApplicationScope_Id(userId, scope.getId())
+        ).isTrue();
+
+        long totalAssignmentsAfterFirstAssign = userApplicationScopeAssignmentRepository.count();
+        assertThat(totalAssignmentsAfterFirstAssign).isEqualTo(totalAssignmentsBefore + 1);
 
         // second identical assignment -> now handled as domain-level conflict before DB unique constraint
-        mockMvc.perform(post("/api/idm/assignments/user-role")
+        mockMvc.perform(post("/api/idm/assignments/user-scope")
                         .header("Authorization", "Bearer " + token)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isConflict());
 
         assertThat(
-                userRoleAssignmentRepository.findAllByUserAccount_Id(userId)
-                        .stream()
-                        .filter(assignment -> assignment.getRole().getId().equals(roleId))
-                        .count()
-        ).isEqualTo(1);
+                userApplicationScopeAssignmentRepository.existsByUserAccount_IdAndApplicationScope_Id(userId, scope.getId())
+        ).isTrue();
+
+        long totalAssignmentsAfterSecondAssign = userApplicationScopeAssignmentRepository.count();
+        assertThat(totalAssignmentsAfterSecondAssign).isEqualTo(totalAssignmentsAfterFirstAssign);
     }
 }

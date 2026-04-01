@@ -4,15 +4,21 @@ package de.cocondo.app.domain.idm.user;
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
+import de.cocondo.app.system.dto.PagedResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Locale;
 import java.util.Optional;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_CREATE;
@@ -89,6 +95,40 @@ public class UserAccountDomainService {
                 .toList();
     }
 
+    @PreAuthorize("hasAuthority('" + IDM_USER_READ + "')")
+    @Transactional(readOnly = true)
+    public PagedResponseDTO<UserAccountDTO> listUsersPaged(
+            int page,
+            int size,
+            String sortBy,
+            String sortDir,
+            String username,
+            String displayName,
+            String email,
+            String state
+    ) {
+
+        validatePaging(page, size);
+
+        String resolvedSortBy = resolveSortBy(sortBy);
+        Sort.Direction direction = resolveSortDirection(sortDir);
+        Specification<UserAccount> specification = buildSpecification(username, displayName, email, state);
+
+        Page<UserAccount> result = userAccountEntityService.loadPage(
+                specification,
+                PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
+        );
+
+        PagedResponseDTO<UserAccountDTO> response = new PagedResponseDTO<>();
+        response.setItems(result.getContent().stream().map(this::mapToDto).toList());
+        response.setPage(result.getNumber());
+        response.setSize(result.getSize());
+        response.setTotalElements(result.getTotalElements());
+        response.setTotalPages(result.getTotalPages());
+
+        return response;
+    }
+
     @PreAuthorize("hasAuthority('" + IDM_USER_UPDATE + "')")
     public UserAccountDTO activate(String id) {
 
@@ -150,6 +190,95 @@ public class UserAccountDomainService {
 
         return userAccountEntityService.loadById(id)
                 .orElseThrow(() -> new EntityNotFoundException("UserAccount not found: id=" + id));
+    }
+
+    private void validatePaging(int page, int size) {
+        if (page < 0) {
+            throw new IllegalArgumentException("page must be >= 0");
+        }
+        if (size <= 0) {
+            throw new IllegalArgumentException("size must be > 0");
+        }
+        if (size > 200) {
+            throw new IllegalArgumentException("size must be <= 200");
+        }
+    }
+
+    private String resolveSortBy(String sortBy) {
+        if (sortBy == null || sortBy.isBlank()) {
+            return "username";
+        }
+
+        return switch (sortBy) {
+            case "id", "username", "displayName", "email", "state" -> sortBy;
+            default -> throw new IllegalArgumentException("Unsupported sortBy for users: " + sortBy);
+        };
+    }
+
+    private Sort.Direction resolveSortDirection(String sortDir) {
+        if (sortDir == null || sortDir.isBlank()) {
+            return Sort.Direction.ASC;
+        }
+
+        if ("asc".equalsIgnoreCase(sortDir)) {
+            return Sort.Direction.ASC;
+        }
+        if ("desc".equalsIgnoreCase(sortDir)) {
+            return Sort.Direction.DESC;
+        }
+
+        throw new IllegalArgumentException("sortDir must be 'asc' or 'desc'");
+    }
+
+    private Specification<UserAccount> buildSpecification(
+            String username,
+            String displayName,
+            String email,
+            String state
+    ) {
+        Specification<UserAccount> specification = Specification.where(null);
+
+        if (username != null && !username.isBlank()) {
+            specification = specification.and(
+                    (root, query, cb) -> cb.like(
+                            cb.lower(root.get("username")),
+                            "%" + username.trim().toLowerCase(Locale.ROOT) + "%"
+                    )
+            );
+        }
+
+        if (displayName != null && !displayName.isBlank()) {
+            specification = specification.and(
+                    (root, query, cb) -> cb.like(
+                            cb.lower(root.get("displayName")),
+                            "%" + displayName.trim().toLowerCase(Locale.ROOT) + "%"
+                    )
+            );
+        }
+
+        if (email != null && !email.isBlank()) {
+            specification = specification.and(
+                    (root, query, cb) -> cb.like(
+                            cb.lower(root.get("email")),
+                            "%" + email.trim().toLowerCase(Locale.ROOT) + "%"
+                    )
+            );
+        }
+
+        if (state != null && !state.isBlank()) {
+            UserAccountState parsedState;
+            try {
+                parsedState = UserAccountState.valueOf(state.trim().toUpperCase(Locale.ROOT));
+            } catch (IllegalArgumentException ex) {
+                throw new IllegalArgumentException("Unsupported state for users: " + state);
+            }
+
+            specification = specification.and(
+                    (root, query, cb) -> cb.equal(root.get("state"), parsedState)
+            );
+        }
+
+        return specification;
     }
 
     private UserAccountDTO mapToDto(UserAccount user) {
