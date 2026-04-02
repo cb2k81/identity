@@ -29,10 +29,10 @@ public class AssignPermissionToRoleHandler {
     public void handle(AssignPermissionToRoleRequestDTO request) {
 
         Role role = roleEntityService.loadById(request.getRoleId())
-                .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
 
         Permission permission = permissionEntityService.loadById(request.getPermissionId())
-                .orElseThrow(() -> new IllegalArgumentException("Permission not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Permission not found"));
 
         if (!role.getApplicationScope().getId()
                 .equals(permission.getApplicationScope().getId())) {

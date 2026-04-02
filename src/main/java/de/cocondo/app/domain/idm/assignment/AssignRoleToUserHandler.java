@@ -7,11 +7,11 @@ import de.cocondo.app.domain.idm.user.UserAccount;
 import de.cocondo.app.domain.idm.user.UserAccountEntityService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_USER_ROLE_ASSIGN;
 
@@ -37,10 +37,10 @@ public class AssignRoleToUserHandler {
         }
 
         UserAccount user = userAccountEntityService.loadById(request.getUserAccountId())
-                .orElseThrow(() -> new IllegalArgumentException("UserAccount not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "UserAccount not found"));
 
         Role role = roleEntityService.loadById(request.getRoleId())
-                .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
 
         if (assignmentService.existsByUserAccountIdAndRoleId(user.getId(), role.getId())) {
             throw new ResponseStatusException(

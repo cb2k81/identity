@@ -7,9 +7,11 @@ import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 
@@ -39,10 +41,10 @@ public class ListUsersOfRoleInScopeHandler {
 
         ApplicationScope scope = applicationScopeEntityService
                 .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
-                .orElseThrow(() -> new IllegalArgumentException("ApplicationScope not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ApplicationScope not found"));
 
         Role role = roleEntityService.loadById(roleId)
-                .orElseThrow(() -> new IllegalArgumentException("Role not found"));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Role not found"));
 
         if (role.getApplicationScope() == null || !scope.getId().equals(role.getApplicationScope().getId())) {
             throw new IllegalArgumentException("Role does not belong to requested scope");
