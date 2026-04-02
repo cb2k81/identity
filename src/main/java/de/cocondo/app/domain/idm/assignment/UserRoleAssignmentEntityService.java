@@ -1,6 +1,8 @@
 package de.cocondo.app.domain.idm.assignment;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -52,6 +54,34 @@ public class UserRoleAssignmentEntityService {
                 roleId,
                 applicationKey,
                 stageKey
+        );
+    }
+
+    public Page<UserRoleAssignment> loadPageByUserAccountIdAndScope(
+            String userAccountId,
+            String applicationKey,
+            String stageKey,
+            Pageable pageable
+    ) {
+        return repository.findAllByUserAccount_IdAndRole_ApplicationScope_ApplicationKeyAndRole_ApplicationScope_StageKey(
+                userAccountId,
+                applicationKey,
+                stageKey,
+                pageable
+        );
+    }
+
+    public Page<UserRoleAssignment> loadPageByRoleIdAndScope(
+            String roleId,
+            String applicationKey,
+            String stageKey,
+            Pageable pageable
+    ) {
+        return repository.findAllByRole_IdAndRole_ApplicationScope_ApplicationKeyAndRole_ApplicationScope_StageKey(
+                roleId,
+                applicationKey,
+                stageKey,
+                pageable
         );
     }
 

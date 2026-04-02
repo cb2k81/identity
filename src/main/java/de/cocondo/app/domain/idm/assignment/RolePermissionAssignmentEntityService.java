@@ -1,6 +1,8 @@
 package de.cocondo.app.domain.idm.assignment;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -29,6 +31,14 @@ public class RolePermissionAssignmentEntityService {
 
     public List<RolePermissionAssignment> loadAllByPermissionId(String permissionId) {
         return repository.findAllByPermission_Id(permissionId);
+    }
+
+    public Page<RolePermissionAssignment> loadPageByRoleId(String roleId, Pageable pageable) {
+        return repository.findAllByRole_Id(roleId, pageable);
+    }
+
+    public Page<RolePermissionAssignment> loadPageByPermissionId(String permissionId, Pageable pageable) {
+        return repository.findAllByPermission_Id(permissionId, pageable);
     }
 
     public boolean existsByRoleIdAndPermissionId(String roleId, String permissionId) {

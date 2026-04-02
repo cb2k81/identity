@@ -1,6 +1,8 @@
 package de.cocondo.app.domain.idm.assignment;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -32,6 +34,14 @@ public class UserApplicationScopeAssignmentEntityService {
 
     public List<UserApplicationScopeAssignment> loadAllByApplicationScopeId(String applicationScopeId) {
         return repository.findAllByApplicationScope_Id(applicationScopeId);
+    }
+
+    public Page<UserApplicationScopeAssignment> loadPageByUserAccountId(String userAccountId, Pageable pageable) {
+        return repository.findAllByUserAccount_Id(userAccountId, pageable);
+    }
+
+    public Page<UserApplicationScopeAssignment> loadPageByApplicationScopeId(String applicationScopeId, Pageable pageable) {
+        return repository.findAllByApplicationScope_Id(applicationScopeId, pageable);
     }
 
     public boolean existsByUserAccountIdAndApplicationScopeId(String userAccountId, String applicationScopeId) {
