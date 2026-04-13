@@ -69,4 +69,59 @@ class UserApplicationScopeAssignmentUserScopesQueryIntegrationTest extends Abstr
                 .andExpect(jsonPath("$[0].applicationKey", is(scope.getApplicationKey())))
                 .andExpect(jsonPath("$[0].stageKey", is(scope.getStageKey())));
     }
+
+    @Test
+    void list_scopes_of_user_paged_as_admin() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        ApplicationScope scope = applicationScopeRepository
+                .findByApplicationKeyAndStageKey(applicationKey, stageKey)
+                .orElseThrow();
+
+        CreateUserRequestDTO userReq = new CreateUserRequestDTO();
+        userReq.setUsername("u_scope_query_paged");
+        userReq.setDisplayName("User Scope Query Paged");
+        userReq.setEmail("u_scope_query_paged@test.local");
+        userReq.setPassword("password");
+
+        String userBody = mockMvc.perform(post("/api/idm/users")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(userReq)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", not(blankOrNullString())))
+                .andExpect(jsonPath("$.username", is("u_scope_query_paged")))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String userId = objectMapper.readTree(userBody).get("id").asText();
+
+        AssignApplicationScopeToUserRequestDTO assignReq = new AssignApplicationScopeToUserRequestDTO();
+        assignReq.setUserAccountId(userId);
+        assignReq.setApplicationScopeId(scope.getId());
+
+        mockMvc.perform(post("/api/idm/assignments/user-scope")
+                        .header("Authorization", "Bearer " + token)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(assignReq)))
+                .andExpect(status().isOk());
+
+        mockMvc.perform(get("/api/idm/assignments/user-scope/users/{userAccountId}/scopes/list", userId)
+                        .header("Authorization", "Bearer " + token)
+                        .param("page", "0")
+                        .param("size", "20")
+                        .param("sortBy", "applicationKey")
+                        .param("sortDir", "asc"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id", is(scope.getId())))
+                .andExpect(jsonPath("$.items[0].applicationKey", is(scope.getApplicationKey())))
+                .andExpect(jsonPath("$.items[0].stageKey", is(scope.getStageKey())))
+                .andExpect(jsonPath("$.page", is(0)))
+                .andExpect(jsonPath("$.size", is(20)))
+                .andExpect(jsonPath("$.totalElements", is(1)))
+                .andExpect(jsonPath("$.totalPages", is(1)));
+    }
 }
