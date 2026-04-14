@@ -15,6 +15,7 @@ import de.cocondo.app.domain.idm.user.UserAccountEntityService;
 import de.cocondo.app.domain.idm.user.dto.AuthenticateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.AuthenticatedUserDTO;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
@@ -24,6 +25,8 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/auth")
 @RequiredArgsConstructor
 public class AuthController {
+
+    private static final String LOGOUT_REASON = "logout";
 
     private final UserAccountAuthenticationService authenticationService;
     private final IdmTokenService idmTokenService;
@@ -108,6 +111,17 @@ public class AuthController {
             return response;
 
         } catch (InvalidCredentialsException | IllegalArgumentException | IllegalStateException ex) {
+            throw new BadCredentialsException("Invalid credentials", ex);
+        }
+    }
+
+    @PostMapping("/logout")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logout(@RequestBody RefreshRequestDTO request) {
+
+        try {
+            authSessionLifecycleService.revokeSession(request.getRefreshToken(), LOGOUT_REASON);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
             throw new BadCredentialsException("Invalid credentials", ex);
         }
     }
