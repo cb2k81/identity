@@ -18,6 +18,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertIterableEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -74,6 +75,11 @@ class PersonnelLoginBootstrapIntegrationTest {
 
         JsonNode json = objectMapper.readTree(responseBody);
         String token = json.get("token").asText();
+        JsonNode refreshTokenNode = json.get("refreshToken");
+        JsonNode refreshExpiresAtNode = json.get("refreshExpiresAt");
+
+        assertNotNull(refreshTokenNode);
+        assertNotNull(refreshExpiresAtNode);
 
         Claims claims = jwtService.parseToken(token);
 

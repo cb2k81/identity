@@ -11,6 +11,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.blankOrNullString;
+import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -22,10 +24,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 })
 class AuthBootstrapIntegrationTest {
 
-    // -------------------------------------------------------------------------
-    // Test Contracts (zentral in der Testklasse definiert)
-    // -------------------------------------------------------------------------
-
     private static final String LOGIN_ENDPOINT = "/auth/login";
 
     private static final String ADMIN_USERNAME = "admin";
@@ -34,17 +32,11 @@ class AuthBootstrapIntegrationTest {
     private static final String SELF_APPLICATION_KEY = "IDM";
     private static final String SELF_STAGE_KEY = "TEST";
 
-    // -------------------------------------------------------------------------
-
     @Autowired
     private MockMvc mockMvc;
 
     @Autowired
     private ObjectMapper objectMapper;
-
-    // -------------------------------------------------------------------------
-    // Helper
-    // -------------------------------------------------------------------------
 
     private LoginRequestDTO loginRequest(
             String username,
@@ -59,10 +51,6 @@ class AuthBootstrapIntegrationTest {
         request.setStageKey(stageKey);
         return request;
     }
-
-    // -------------------------------------------------------------------------
-    // Tests
-    // -------------------------------------------------------------------------
 
     @Test
     void login_shouldWork_withBootstrapAdmin_andSelfScope() throws Exception {
@@ -82,7 +70,9 @@ class AuthBootstrapIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists())
                 .andExpect(jsonPath("$.tokenType").value("Bearer"))
-                .andExpect(jsonPath("$.expiresAt").exists());
+                .andExpect(jsonPath("$.expiresAt").exists())
+                .andExpect(jsonPath("$.refreshToken", not(blankOrNullString())))
+                .andExpect(jsonPath("$.refreshExpiresAt").exists());
     }
 
     @Test

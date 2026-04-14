@@ -112,6 +112,8 @@ class LoginProtectionIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(correct)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.token", not(blankOrNullString())));
+                .andExpect(jsonPath("$.token", not(blankOrNullString())))
+                .andExpect(jsonPath("$.refreshToken", not(blankOrNullString())))
+                .andExpect(jsonPath("$.refreshExpiresAt").exists());
     }
 }
