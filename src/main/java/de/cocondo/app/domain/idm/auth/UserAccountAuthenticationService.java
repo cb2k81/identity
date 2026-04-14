@@ -111,6 +111,43 @@ public class UserAccountAuthenticationService {
             throw new InvalidCredentialsException();
         }
 
+        return buildAuthenticatedUser(user, scope);
+    }
+
+    /**
+     * Reconstructs an authenticated user context for token issuing without
+     * performing a password-based login.
+     *
+     * This is used for refresh flows where the server-side AuthSession has
+     * already proven the user/scope context.
+     */
+    public AuthenticatedUserDTO buildAuthenticatedUser(UserAccount user, ApplicationScope scope) {
+
+        if (user == null) {
+            throw new IllegalArgumentException("user must not be null");
+        }
+        if (scope == null) {
+            throw new IllegalArgumentException("scope must not be null");
+        }
+        if (!user.isActive()) {
+            throw new InvalidCredentialsException();
+        }
+
+        boolean hasAccess = userApplicationScopeAssignmentEntityService
+                .existsByUserAccountIdAndApplicationScopeId(
+                        user.getId(),
+                        scope.getId()
+                );
+
+        if (!hasAccess) {
+            throw new InvalidCredentialsException();
+        }
+
+        return createAuthenticatedUserDto(user, scope);
+    }
+
+    private AuthenticatedUserDTO createAuthenticatedUserDto(UserAccount user, ApplicationScope scope) {
+
         List<UserRoleAssignment> assignments = userRoleAssignmentEntityService.loadAllByUserAccountId(user.getId());
 
         log.info(

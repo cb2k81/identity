@@ -3,6 +3,8 @@ package de.cocondo.app.domain.idm.auth;
 import de.cocondo.app.domain.idm.auth.dto.LoginRequestDTO;
 import de.cocondo.app.domain.idm.auth.dto.LoginResponseDTO;
 import de.cocondo.app.domain.idm.auth.dto.MeResponseDTO;
+import de.cocondo.app.domain.idm.auth.dto.RefreshRequestDTO;
+import de.cocondo.app.domain.idm.auth.session.AuthSession;
 import de.cocondo.app.domain.idm.auth.session.AuthSessionLifecycleService;
 import de.cocondo.app.domain.idm.auth.session.IssuedAuthSession;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
@@ -74,6 +76,40 @@ public class AuthController {
         response.setRefreshExpiresAt(issuedAuthSession.refreshExpiresAt());
 
         return response;
+    }
+
+    @PostMapping("/refresh")
+    public LoginResponseDTO refresh(@RequestBody RefreshRequestDTO request) {
+
+        try {
+            AuthSession authSession = authSessionLifecycleService.validateActiveSession(request.getRefreshToken());
+
+            UserAccount userAccount = userAccountEntityService.loadById(authSession.getUserAccount().getId())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "AuthSession UserAccount could not be reloaded: sessionId=" + authSession.getId()
+                    ));
+
+            ApplicationScope applicationScope = applicationScopeEntityService.loadById(authSession.getApplicationScope().getId())
+                    .orElseThrow(() -> new IllegalStateException(
+                            "AuthSession ApplicationScope could not be reloaded: sessionId=" + authSession.getId()
+                    ));
+
+            AuthenticatedUserDTO authenticatedUser =
+                    authenticationService.buildAuthenticatedUser(userAccount, applicationScope);
+
+            IdmTokenService.IssuedToken issuedToken = idmTokenService.issueToken(authenticatedUser);
+
+            LoginResponseDTO response = new LoginResponseDTO();
+            response.setToken(issuedToken.token());
+            response.setExpiresAt(issuedToken.expiresAt());
+            response.setRefreshToken(request.getRefreshToken());
+            response.setRefreshExpiresAt(authSession.getExpiresAt().toEpochMilli());
+
+            return response;
+
+        } catch (InvalidCredentialsException | IllegalArgumentException | IllegalStateException ex) {
+            throw new BadCredentialsException("Invalid credentials", ex);
+        }
     }
 
     @GetMapping("/me")
