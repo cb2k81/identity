@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private static final String LOGOUT_REASON = "logout";
+    private static final String LOGOUT_ALL_REASON = "logout-all";
 
     private final UserAccountAuthenticationService authenticationService;
     private final IdmTokenService idmTokenService;
@@ -121,6 +122,21 @@ public class AuthController {
 
         try {
             authSessionLifecycleService.revokeSession(request.getRefreshToken(), LOGOUT_REASON);
+        } catch (IllegalArgumentException | IllegalStateException ex) {
+            throw new BadCredentialsException("Invalid credentials", ex);
+        }
+    }
+
+    @PostMapping("/logout-all")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void logoutAll(@RequestBody RefreshRequestDTO request) {
+
+        try {
+            AuthSession authSession = authSessionLifecycleService.validateActiveSession(request.getRefreshToken());
+            authSessionLifecycleService.revokeAllSessionsForUser(
+                    authSession.getUserAccount().getId(),
+                    LOGOUT_ALL_REASON
+            );
         } catch (IllegalArgumentException | IllegalStateException ex) {
             throw new BadCredentialsException("Invalid credentials", ex);
         }
