@@ -4,11 +4,14 @@ package de.cocondo.app.domain.idm.user;
 import de.cocondo.app.domain.idm.AbstractIdmIntegrationTest;
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
+import de.cocondo.app.domain.idm.user.dto.UpdateUserRequestDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.MediaType;
 
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -46,6 +49,8 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
                 .andExpect(jsonPath("$.displayName").value(displayName))
                 .andExpect(jsonPath("$.email").value(email))
                 .andExpect(jsonPath("$.state").value("ACTIVE"))
+                .andExpect(jsonPath("$.loginCount").value(0))
+                .andExpect(jsonPath("$.lastLogin").doesNotExist())
                 .andReturn()
                 .getResponse()
                 .getContentAsString();
@@ -61,6 +66,99 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
                 .andExpect(jsonPath("$.username").value(username))
                 .andExpect(jsonPath("$.displayName").value(displayName))
                 .andExpect(jsonPath("$.email").value(email))
+                .andExpect(jsonPath("$.state").value("ACTIVE"))
+                .andExpect(jsonPath("$.loginCount").value(0))
+                .andExpect(jsonPath("$.lastLogin").doesNotExist());
+    }
+
+    @Test
+    void read_admin_user_includes_login_metrics() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String listResponse = mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "1")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("username", adminUsername)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].username").value(adminUsername))
+                .andExpect(jsonPath("$.items[0].loginCount").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.items[0].lastLogin").value(notNullValue()))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String adminUserId = objectMapper.readTree(listResponse).get("items").get(0).get("id").asText();
+
+        mockMvc.perform(
+                        get("/api/idm/users/{id}", adminUserId)
+                                .header("Authorization", "Bearer " + token)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(adminUserId))
+                .andExpect(jsonPath("$.username").value(adminUsername))
+                .andExpect(jsonPath("$.loginCount").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.lastLogin").value(notNullValue()));
+    }
+
+    @Test
+    void update_user_master_data() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String username = "user_" + UUID.randomUUID();
+
+        CreateUserRequestDTO create = new CreateUserRequestDTO();
+        create.setUsername(username);
+        create.setDisplayName("User Display");
+        create.setEmail("user@example.org");
+        create.setPassword("password");
+
+        String createResponse = mockMvc.perform(
+                        post("/api/idm/users")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(create))
+                )
+                .andExpect(status().isCreated())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        String userId = objectMapper.readTree(createResponse).get("id").asText();
+
+        UpdateUserRequestDTO update = new UpdateUserRequestDTO();
+        update.setDisplayName("User Display Updated");
+        update.setEmail("user.updated@example.org");
+
+        mockMvc.perform(
+                        put("/api/idm/users/{id}", userId)
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(update))
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(userId))
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.displayName").value("User Display Updated"))
+                .andExpect(jsonPath("$.email").value("user.updated@example.org"))
+                .andExpect(jsonPath("$.state").value("ACTIVE"));
+
+        mockMvc.perform(
+                        get("/api/idm/users/{id}", userId)
+                                .header("Authorization", "Bearer " + token)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(userId))
+                .andExpect(jsonPath("$.username").value(username))
+                .andExpect(jsonPath("$.displayName").value("User Display Updated"))
+                .andExpect(jsonPath("$.email").value("user.updated@example.org"))
                 .andExpect(jsonPath("$.state").value("ACTIVE"));
     }
 

@@ -1,8 +1,10 @@
 // Datei: src/main/java/de/cocondo/app/domain/idm/user/UserAccountDomainService.java
 package de.cocondo.app.domain.idm.user;
 
+import de.cocondo.app.domain.idm.auth.session.AuthSessionEntityService;
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
+import de.cocondo.app.domain.idm.user.dto.UpdateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
 import jakarta.persistence.EntityNotFoundException;
@@ -35,6 +37,7 @@ public class UserAccountDomainService {
     private final UserAccountEntityService userAccountEntityService;
     private final PasswordEncoder passwordEncoder;
     private final PasswordPolicyValidator passwordPolicyValidator;
+    private final AuthSessionEntityService authSessionEntityService;
 
     @PreAuthorize("hasAuthority('" + IDM_USER_CREATE + "')")
     public UserAccountDTO createUser(CreateUserRequestDTO request) {
@@ -127,6 +130,25 @@ public class UserAccountDomainService {
         response.setTotalPages(result.getTotalPages());
 
         return response;
+    }
+
+    @PreAuthorize("hasAuthority('" + IDM_USER_UPDATE + "')")
+    public UserAccountDTO updateUser(String id, UpdateUserRequestDTO request) {
+
+        if (request == null) {
+            throw new IllegalArgumentException("request must not be null");
+        }
+
+        UserAccount user = loadUserByIdRequired(id);
+
+        user.setDisplayName(request.getDisplayName());
+        user.setEmail(request.getEmail());
+
+        UserAccount saved = userAccountEntityService.save(user);
+
+        log.info("User updated: id={}, username={}", saved.getId(), saved.getUsername());
+
+        return mapToDto(saved);
     }
 
     @PreAuthorize("hasAuthority('" + IDM_USER_UPDATE + "')")
@@ -289,6 +311,14 @@ public class UserAccountDomainService {
         dto.setDisplayName(user.getDisplayName());
         dto.setEmail(user.getEmail());
         dto.setState(user.getState());
+        dto.setFailedLoginAttempts(user.getFailedLoginAttempts());
+        dto.setLockedUntil(user.getLockedUntil());
+        dto.setCreatedBy(user.getCreatedBy());
+        dto.setCreatedAt(user.getCreatedAt());
+        dto.setLastModifiedBy(user.getLastModifiedBy());
+        dto.setLastModifiedAt(user.getLastModifiedAt());
+        dto.setLoginCount(authSessionEntityService.countByUserAccountId(user.getId()));
+        dto.setLastLogin(authSessionEntityService.findLastLoginAtByUserAccountId(user.getId()).orElse(null));
         return dto;
     }
 }

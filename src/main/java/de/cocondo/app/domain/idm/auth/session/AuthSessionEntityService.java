@@ -5,13 +5,18 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
 /**
  * Entity service for AuthSession.
  *
- * Encapsulates persistence access and operates exclusively on domain entities.
+ * Responsibilities:
+ * - Persistence-oriented access to AuthSession entities
+ * - No controller logic
+ * - No token/JWT logic
+ * - No authorization logic
  */
 @Service
 @RequiredArgsConstructor
@@ -34,6 +39,15 @@ public class AuthSessionEntityService {
 
     public List<AuthSession> loadAllActiveByUserAccountId(String userAccountId) {
         return repository.findAllByUserAccount_IdAndStatus(userAccountId, AuthSessionStatus.ACTIVE);
+    }
+
+    public long countByUserAccountId(String userAccountId) {
+        return repository.countByUserAccount_Id(userAccountId);
+    }
+
+    public Optional<LocalDateTime> findLastLoginAtByUserAccountId(String userAccountId) {
+        return repository.findTopByUserAccount_IdOrderByCreatedAtDesc(userAccountId)
+                .map(AuthSession::getCreatedAt);
     }
 
     @Transactional

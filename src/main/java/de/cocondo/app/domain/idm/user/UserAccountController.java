@@ -2,6 +2,7 @@ package de.cocondo.app.domain.idm.user;
 
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
+import de.cocondo.app.domain.idm.user.dto.UpdateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
 import lombok.RequiredArgsConstructor;
@@ -59,6 +60,14 @@ public class UserAccountController {
     @GetMapping
     public List<UserAccountDTO> list() {
         return userAccountDomainService.listUsers();
+    }
+
+    @PutMapping("/{id}")
+    public UserAccountDTO update(
+            @PathVariable("id") String id,
+            @RequestBody UpdateUserRequestDTO request
+    ) {
+        return userAccountDomainService.updateUser(id, request);
     }
 
     @PutMapping("/{id}/activate")

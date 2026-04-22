@@ -20,4 +20,8 @@ public interface AuthSessionRepository extends JpaRepository<AuthSession, String
     List<AuthSession> findAllByUserAccount_Id(String userAccountId);
 
     List<AuthSession> findAllByUserAccount_IdAndStatus(String userAccountId, AuthSessionStatus status);
+
+    long countByUserAccount_Id(String userAccountId);
+
+    Optional<AuthSession> findTopByUserAccount_IdOrderByCreatedAtDesc(String userAccountId);
 }
