@@ -1,6 +1,7 @@
 package de.cocondo.app.domain.idm.assignment;
 
 import de.cocondo.app.domain.idm.user.UserAccountDtoAssembler;
+import de.cocondo.app.domain.idm.user.UserAccountState;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
 import de.cocondo.app.system.list.PagedQuerySupport;
@@ -12,6 +13,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.Locale;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_SCOPE_READ;
 
@@ -31,7 +34,11 @@ public class ListUsersOfApplicationScopePagedHandler {
             int page,
             int size,
             String sortBy,
-            String sortDir
+            String sortDir,
+            String username,
+            String displayName,
+            String email,
+            String state
     ) {
         if (applicationScopeId == null || applicationScopeId.isBlank()) {
             throw new IllegalArgumentException("applicationScopeId must not be blank");
@@ -42,10 +49,20 @@ public class ListUsersOfApplicationScopePagedHandler {
         String resolvedSortBy = resolveSortBy(sortBy);
         Sort.Direction direction = pagedQuerySupport.resolveSortDirection(sortDir);
 
-        Page<UserApplicationScopeAssignment> result = userApplicationScopeAssignmentEntityService.loadPageByApplicationScopeId(
-                applicationScopeId,
-                PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
-        );
+        String normalizedUsername = normalizeFilter(username);
+        String normalizedDisplayName = normalizeFilter(displayName);
+        String normalizedEmail = normalizeFilter(email);
+        UserAccountState parsedState = parseState(state);
+
+        Page<UserApplicationScopeAssignment> result =
+                userApplicationScopeAssignmentEntityService.loadPageByApplicationScopeId(
+                        applicationScopeId,
+                        normalizedUsername,
+                        normalizedDisplayName,
+                        normalizedEmail,
+                        parsedState,
+                        PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
+                );
 
         return pagedResponseFactory.fromPage(
                 result,
@@ -66,5 +83,24 @@ public class ListUsersOfApplicationScopePagedHandler {
             case "state" -> "userAccount.state";
             default -> throw new IllegalArgumentException("Unsupported sortBy for scope users: " + sortBy);
         };
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private UserAccountState parseState(String state) {
+        if (state == null || state.isBlank()) {
+            return null;
+        }
+
+        try {
+            return UserAccountState.valueOf(state.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported state for scope users: " + state);
+        }
     }
 }

@@ -1,5 +1,6 @@
 package de.cocondo.app.domain.idm.assignment;
 
+import de.cocondo.app.domain.idm.user.UserAccountState;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -81,6 +82,28 @@ public class UserRoleAssignmentEntityService {
                 roleId,
                 applicationKey,
                 stageKey,
+                pageable
+        );
+    }
+
+    public Page<UserRoleAssignment> loadPageByRoleIdAndScope(
+            String roleId,
+            String applicationKey,
+            String stageKey,
+            String username,
+            String displayName,
+            String email,
+            UserAccountState state,
+            Pageable pageable
+    ) {
+        return repository.findPageByRoleIdAndScopeAndUserFilters(
+                roleId,
+                applicationKey,
+                stageKey,
+                username,
+                displayName,
+                email,
+                state,
                 pageable
         );
     }

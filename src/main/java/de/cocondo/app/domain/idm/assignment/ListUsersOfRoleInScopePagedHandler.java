@@ -5,6 +5,7 @@ import de.cocondo.app.domain.idm.role.RoleEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
 import de.cocondo.app.domain.idm.user.UserAccountDtoAssembler;
+import de.cocondo.app.domain.idm.user.UserAccountState;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
 import de.cocondo.app.system.list.PagedQuerySupport;
@@ -18,6 +19,8 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
+
+import java.util.Locale;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_ROLE_READ;
 
@@ -41,7 +44,11 @@ public class ListUsersOfRoleInScopePagedHandler {
             int page,
             int size,
             String sortBy,
-            String sortDir
+            String sortDir,
+            String username,
+            String displayName,
+            String email,
+            String state
     ) {
         if (roleId == null || roleId.isBlank()) {
             throw new IllegalArgumentException("roleId must not be blank");
@@ -69,10 +76,19 @@ public class ListUsersOfRoleInScopePagedHandler {
         String resolvedSortBy = resolveSortBy(sortBy);
         Sort.Direction direction = pagedQuerySupport.resolveSortDirection(sortDir);
 
+        String normalizedUsername = normalizeFilter(username);
+        String normalizedDisplayName = normalizeFilter(displayName);
+        String normalizedEmail = normalizeFilter(email);
+        UserAccountState parsedState = parseState(state);
+
         Page<UserRoleAssignment> result = userRoleAssignmentEntityService.loadPageByRoleIdAndScope(
                 roleId,
                 applicationKey,
                 stageKey,
+                normalizedUsername,
+                normalizedDisplayName,
+                normalizedEmail,
+                parsedState,
                 PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
         );
 
@@ -95,5 +111,24 @@ public class ListUsersOfRoleInScopePagedHandler {
             case "state" -> "userAccount.state";
             default -> throw new IllegalArgumentException("Unsupported sortBy for role users in scope: " + sortBy);
         };
+    }
+
+    private String normalizeFilter(String value) {
+        if (value == null || value.isBlank()) {
+            return null;
+        }
+        return value.trim();
+    }
+
+    private UserAccountState parseState(String state) {
+        if (state == null || state.isBlank()) {
+            return null;
+        }
+
+        try {
+            return UserAccountState.valueOf(state.trim().toUpperCase(Locale.ROOT));
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException("Unsupported state for role users in scope: " + state);
+        }
     }
 }

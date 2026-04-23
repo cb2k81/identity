@@ -1,5 +1,6 @@
 package de.cocondo.app.domain.idm.assignment;
 
+import de.cocondo.app.domain.idm.user.UserAccountState;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -42,6 +43,24 @@ public class UserApplicationScopeAssignmentEntityService {
 
     public Page<UserApplicationScopeAssignment> loadPageByApplicationScopeId(String applicationScopeId, Pageable pageable) {
         return repository.findAllByApplicationScope_Id(applicationScopeId, pageable);
+    }
+
+    public Page<UserApplicationScopeAssignment> loadPageByApplicationScopeId(
+            String applicationScopeId,
+            String username,
+            String displayName,
+            String email,
+            UserAccountState state,
+            Pageable pageable
+    ) {
+        return repository.findPageByApplicationScopeIdAndUserFilters(
+                applicationScopeId,
+                username,
+                displayName,
+                email,
+                state,
+                pageable
+        );
     }
 
     public boolean existsByUserAccountIdAndApplicationScopeId(String userAccountId, String applicationScopeId) {

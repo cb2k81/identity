@@ -78,7 +78,11 @@ public class UserRoleAssignmentController {
             @RequestParam(name = "page", defaultValue = "0") int page,
             @RequestParam(name = "size", defaultValue = "20") int size,
             @RequestParam(name = "sortBy", defaultValue = "username") String sortBy,
-            @RequestParam(name = "sortDir", defaultValue = "asc") String sortDir
+            @RequestParam(name = "sortDir", defaultValue = "asc") String sortDir,
+            @RequestParam(name = "username", required = false) String username,
+            @RequestParam(name = "displayName", required = false) String displayName,
+            @RequestParam(name = "email", required = false) String email,
+            @RequestParam(name = "state", required = false) String state
     ) {
         return listUsersOfRoleInScopePagedHandler.handle(
                 roleId,
@@ -87,7 +91,11 @@ public class UserRoleAssignmentController {
                 page,
                 size,
                 sortBy,
-                sortDir
+                sortDir,
+                username,
+                displayName,
+                email,
+                state
         );
     }
 }
