@@ -1,10 +1,12 @@
-# IDM User UI – fachliche Vorlage für GWC
+# IDM Sprint 9.3 – Fachvorlage User-UI / API-Kopplung für GWC
 
 ## 1. Ziel
 
-Diese Vorlage definiert die fachlich korrekte UI-Grundlage für die Darstellung von **User Accounts** im GWC-Projekt auf Basis der aktuellen IDM-Baseline.
+Diese Vorlage definiert die fachlich korrekte Grundlage für die Darstellung von **User Accounts** im GWC-Projekt auf Basis der aktuellen IDM-Baseline und des aktuellen Sprint-9-Zuschnitts.
 
-Fokus dieses ersten Standes ist die **rein visuelle/konzeptionelle User-Detailseite**. Die Vorlage ist zugleich die fachliche Grundlage für die nachfolgende Listen- und Formularansicht.
+Sprint 9 dient aktuell der **UI-Reifmachung der IDM-API**. Diese Vorlage beschreibt daher nicht nur die visuelle/fachliche Zielstruktur der User-Oberflächen, sondern auch die **reale fachliche Kopplung** zwischen GWC und IDM-API im aktuellen Stand.
+
+Das Dokument ist eine **Fachvorlage für die GWC-Umsetzung** und zugleich eine Referenz für die weitere API-Abstimmung.
 
 ---
 
@@ -18,8 +20,8 @@ Der User besteht fachlich aus:
 * Zuordnung zu ApplicationScopes
 * Zuordnung von Rollen innerhalb von Scopes
 * technischem Sicherheits- und Lebenszyklusstatus
-* technischen Metadaten/Auditdaten
-* optionaler Session-/Anmeldekontextdarstellung
+* technischen Auditdaten
+* technischem Login-/Anmeldekontext
 
 Nicht Bestandteil des aktuellen IDM-User-Modells sind insbesondere:
 
@@ -42,7 +44,7 @@ Solche Felder dürfen daher in der User-Detailseite **nicht als fachliche Stammd
 
 Primäres Objekt der Seite.
 
-Relevante Felder aus dem Modell:
+Relevante Felder im aktuellen fachlichen/API-nahen Stand:
 
 * `id`
 * `username`
@@ -55,12 +57,16 @@ Relevante Felder aus dem Modell:
 * `createdBy`
 * `lastModifiedAt`
 * `lastModifiedBy`
-* `tags`
-* `keyValuePairs`
+* `loginCount`
+* `lastLogin`
 
 Nicht anzeigen:
 
 * `passwordHash`
+
+Hinweis:
+
+`tags` und `keyValuePairs` sind im generischen Metadatenmodell grundsätzlich vorhanden, sind aber **vorerst nicht MVP-relevant für Sprint 9** und daher **kein aktiver Bestandteil des minimalen UI-Zuschnitts**.
 
 ### 3.2 UserApplicationScopeAssignment
 
@@ -102,16 +108,16 @@ Beispiel:
 * IDM / PROD
 * PERSONNEL / TEST
 
-### 3.5 AuthSession / Sicherheitskontext
+### 3.5 AuthSession / Login-Kontext
 
-Für eine Admin-Detailseite fachlich sinnvoll, sofern verfügbar:
+Für die User-Verwaltung fachlich relevant:
 
-* aktive Sessions
-* Session-Status
-* Ablaufzeitpunkt
-* Revocation-Informationen
+* `lastLogin`
+* `loginCount`
 
-Da dies ein separates Modell ist, sollte dieser Block als **technischer Sicherheits-/Sessionbereich** gestaltet werden und nicht als Stammdatenbereich.
+Diese Informationen werden aktuell als Login-/Nutzungsmetriken im User-Kontext betrachtet.
+
+Eine dedizierte **Admin-Session-Read-API** für aktive Sessions, Revocation-Informationen oder Session-Listen ist **vorerst nicht MVP-relevant** und daher aktuell **nicht Bestandteil des Sprint-9-Minimalumfangs**.
 
 ---
 
@@ -134,7 +140,6 @@ Primäre Seitenaktionen:
 * Passwort ändern
 * Aktivieren / Deaktivieren
 * Historie / Audit
-* Sessions verwalten (optional, wenn vorgesehen)
 
 ### Kopf-Metriken
 
@@ -142,11 +147,7 @@ Empfohlen:
 
 * Letzter Login
 * Fehlversuche
-* Anzahl aktiver Sessions
-
-Hinweis:
-
-`Letzter Login` ist aktuell im gezeigten `UserAccountDTO` noch nicht enthalten und muss daher für eine finale UI gezielt bereitgestellt werden.
+* Login-Zähler
 
 ---
 
@@ -163,11 +164,6 @@ Anzuzeigende Felder:
 * Anzeigename
 * E-Mail
 * Status
-
-Optional im selben Block oder als eigener Technikblock:
-
-* Fehlgeschlagene Login-Versuche
-* Temporär gesperrt bis (`lockedUntil`)
 
 ### Fachliche Bewertung
 
@@ -223,7 +219,7 @@ Das ist fachlich deutlich präziser als eine einfache globale Rollenliste.
 
 ## Block D – Sicherheitsstatus
 
-Pflichtblock für Admin-Oberfläche.
+Pflichtblock für die Admin-Oberfläche.
 
 Anzuzeigen:
 
@@ -231,18 +227,18 @@ Anzuzeigen:
 * Fehlversuche (`failedLoginAttempts`)
 * Sperrzeitpunkt bis (`lockedUntil`), falls gesetzt
 
-Optional:
+Optional später:
 
 * Passwort geändert am
 * Passwort-Reset angefordert am
 
 Hinweis:
 
-Die letzten beiden Felder sind aktuell nicht Bestandteil des gezeigten Modells und daher derzeit nur als zukünftige Erweiterung zu sehen.
+Die letzten beiden Felder sind aktuell nicht Bestandteil des minimalen Sprint-9-Umfangs.
 
 ---
 
-## Block E – Audit / technische Metadaten
+## Block E – Audit
 
 Sehr sinnvoll für die Detailseite.
 
@@ -253,37 +249,34 @@ Anzuzeigen:
 * Zuletzt geändert am
 * Zuletzt geändert von
 
-Optional zusätzlich:
-
-* Tags
-* Key-Value-Metadaten
-
 ### Fachliche Bedeutung
 
 Dieser Block beschreibt Herkunft und Änderungsverlauf des Accounts.
 
 ---
 
-## Block F – Anmelde- und Session-Kontext
+## Block F – Login-Kontext
 
-Optional, aber fachlich sehr wertvoll.
+Optionaler, aber fachlich wertvoller Block.
 
-Geeignet als Seitenleiste oder separater Card-Block.
-
-Anzuzeigen, sofern Daten geliefert werden:
+Anzuzeigen, sofern geliefert:
 
 * Letzter Login
-* aktive Sessions
-* Session-Abläufe
-* Revoked/Expired Sessions
+* Login-Zähler
 
 Wichtig:
 
-Dieser Block ist **nicht** Teil der User-Stammdaten, sondern ein technischer Betriebsblock.
+Dieser Block ist **kein Personen-/Stammdatenblock**, sondern ein technischer Kontextblock.
+
+Nicht Bestandteil des aktuellen Sprint-9-MVP-Zuschnitts sind:
+
+* aktive Sessions als Detail-Liste
+* Session-Abläufe
+* Revoked/Expired Sessions
 
 ---
 
-## 6. Was aus dem aktuellen GWC-Dummy entfernt oder ersetzt werden sollte
+## 6. Was aus den aktuellen GWC-Dummies entfernt oder ersetzt werden sollte
 
 Die aktuellen Dummies enthalten mehrere Felder, die in der IDM-Baseline für User derzeit fachlich nicht belegt sind.
 
@@ -308,7 +301,7 @@ Die aktuellen Dummies enthalten mehrere Felder, die in der IDM-Baseline für Use
 * Sprache
 * Zeitzone
 * Scope-Profil
-* interne Notizen, sofern diese nicht explizit über Metadata/KeyValuePairs modelliert werden
+* interne Notizen
 
 ### Ersetzen durch echte IDM-Felder
 
@@ -320,9 +313,11 @@ Stattdessen verwenden:
 * Status
 * Fehlversuche
 * Locked-until
+* Login-Zähler
+* letzter Login
 * Scope-Zuordnungen
 * Rollen je Scope
-* Audit/Metadaten
+* Auditdaten
 
 ---
 
@@ -337,9 +332,9 @@ Stattdessen verwenden:
 * Status-Badge
 * Metriken:
 
-    * letzter Login
-    * Fehlversuche
-    * aktive Sessions
+  * letzter Login
+  * Fehlversuche
+  * Login-Zähler
 
 ### Card 2 – Account-Stammdaten
 
@@ -361,28 +356,24 @@ Gruppierte Rollenliste pro Scope.
 
 * Fehlversuche
 * lockedUntil
-* optional Session-Status-Zusammenfassung
 
 ## Seitenleiste
 
-### Card 6 – Audit / Meta
+### Card 6 – Audit
 
 * Angelegt am / von
 * Zuletzt geändert am / von
-* Tags
-* Key-Value-Metadaten
 
-### Card 7 – Historie
+### Card 7 – Login-Kontext
 
-Nur wenn echte Auditdaten vorhanden sind.
-
-Bis dahin besser als Platzhalter/disabled Entry statt frei erfundener Timeline-Daten.
+* letzter Login
+* Login-Zähler
 
 ---
 
-## 8. Fachliche Empfehlung für die spätere Listenansicht
+## 8. Fachliche Empfehlung für die finale Listenansicht
 
-Die spätere finale Listenansicht sollte mindestens diese Spalten berücksichtigen:
+Die finale Listenansicht sollte mindestens diese Spalten berücksichtigen:
 
 * ID
 * Benutzername
@@ -390,6 +381,7 @@ Die spätere finale Listenansicht sollte mindestens diese Spalten berücksichtig
 * E-Mail
 * Status
 * Letzter Login
+* Login-Zähler
 * Fehlversuche
 * Locked until
 * Zugewiesene Scopes (kompakt)
@@ -398,19 +390,25 @@ Die spätere finale Listenansicht sollte mindestens diese Spalten berücksichtig
 
 Hinweis:
 
-Einige dieser Spalten sind aktuell fachlich sinnvoll, aber noch nicht in der einfachen User-Liste-DTO enthalten. Für die finale Listenansicht wird daher voraussichtlich ein erweitertes Listen-DTO oder eine dedizierte Query benötigt.
+Nicht alle dieser Informationen sind heute bereits über alle User-bezogenen Endpunkte in gleicher Vollständigkeit konsistent geliefert. Für Sprint 9 ist jedoch die User-Liste fachlich deutlich weiter reif als zu Beginn der Analyse.
+
+Die verbleibenden Konsistenz-/Listenfähigkeits-Themen werden separat als **Technische Schulden** geführt.
 
 ---
 
-## 9. Fachliche Empfehlung für die spätere Formularansicht
+## 9. Fachliche Empfehlung für die Formularansicht
 
-Die spätere Formularansicht sollte sich auf tatsächlich änderbare IDM-User-Felder konzentrieren.
+Die Formularansicht sollte sich auf tatsächlich änderbare IDM-User-Felder konzentrieren.
 
 ### Stammdaten editierbar
 
 * Anzeigename
 * E-Mail
-* Status (fachlich gesteuert)
+
+### Statuspflege fachlich separat
+
+* Aktivieren
+* Deaktivieren
 
 ### Separat oder in Unterbereichen
 
@@ -421,27 +419,18 @@ Die spätere Formularansicht sollte sich auf tatsächlich änderbare IDM-User-Fe
 ### Read-only
 
 * ID
-* Benutzername (je nach Fachregel eher read-only)
+* Benutzername
 * Auditfelder
 * Sicherheits-/Lock-Informationen
+* Login-Metriken
 
 ---
 
-## 10. Zusammenfassung
+## 10. Konzeptionelle Kopplung zwischen GWC und IDM-API
 
-Für das aktuelle IDM ist die User-Detailseite fachlich korrekt, wenn sie den **technischen Account**, dessen **Scope-Zuordnungen**, dessen **Rollen pro Scope**, den **Sicherheitsstatus** und die **Audit-/Metadaten** darstellt.
+Dieses Kapitel definiert, welche bestehenden IDM-Endpunkte für welche User-Ansicht verwendet werden sollen.
 
-Nicht korrekt wäre eine UI, die den User bereits wie einen vollständigen Personenstammsatz modelliert.
-
-Die aktuelle GWC-Dummy-Struktur ist als Seitenlayout brauchbar, muss aber fachlich auf das IDM-Modell zurückgeschnitten werden.
-
----
-
-## 11. Konzeptionelle Kopplung zwischen GWC und IDM-API
-
-Dieses Kapitel definiert, welche bestehenden IDM-Endpunkte für welche User-Ansicht verwendet werden sollen und ob die aktuelle API die benötigten Daten bereits ausreichend liefert.
-
-### 11.1 Grundsatz
+### 10.1 Grundsatz
 
 Für die User-Oberflächen soll der Client **nicht** aus Entitätsannahmen arbeiten, sondern aus klaren API-Verträgen.
 
@@ -454,7 +443,7 @@ Das bedeutet:
 
 ---
 
-### 11.2 Bestehende User-Kernendpunkte
+### 10.2 User-Kernendpunkte
 
 #### User-Liste
 
@@ -475,14 +464,6 @@ Antwort:
 
 * `PagedResponseDTO<UserAccountDTO>`
 
-Aktuell geliefertes DTO:
-
-* `id`
-* `username`
-* `displayName`
-* `email`
-* `state`
-
 #### User-Detail
 
 `GET /api/idm/users/{id}`
@@ -491,28 +472,18 @@ Antwort:
 
 * `UserAccountDTO`
 
-Aktuell geliefertes DTO:
-
-* `id`
-* `username`
-* `displayName`
-* `email`
-* `state`
-
 #### User anlegen
 
 `POST /api/idm/users`
 
+#### User-Stammdaten aktualisieren
+
+`PUT /api/idm/users/{id}`
+
 Request:
 
-* `username`
 * `displayName`
 * `email`
-* `password`
-
-Antwort:
-
-* `UserAccountDTO`
 
 #### User aktivieren / deaktivieren
 
@@ -520,21 +491,9 @@ Antwort:
 
 `PUT /api/idm/users/{id}/deactivate`
 
-Antwort jeweils:
-
-* `UserAccountDTO`
-
 #### Passwort ändern
 
 `PUT /api/idm/users/{id}/password`
-
-Request:
-
-* `newPassword`
-
-Antwort:
-
-* `UserAccountDTO`
 
 #### User löschen
 
@@ -542,59 +501,27 @@ Antwort:
 
 ---
 
-### 11.3 Bestehende Endpunkte für Scope-Zuordnungen des Users
+### 10.3 Endpunkte für Scope-Zuordnungen des Users
 
 #### Zugewiesene Scopes eines Users lesen
 
 `GET /api/idm/assignments/user-scope/users/{userAccountId}/scopes`
 
-Antwort:
-
-* Liste von `ApplicationScopeDTO`
-
-Felder:
-
-* `id`
-* `applicationKey`
-* `stageKey`
-* `description`
-
 #### Zugewiesene Scopes eines Users paginiert lesen
 
 `GET /api/idm/assignments/user-scope/users/{userAccountId}/scopes/list`
-
-Parameter:
-
-* `page`
-* `size`
-* `sortBy`
-* `sortDir`
-
-Antwort:
-
-* `PagedResponseDTO<ApplicationScopeDTO>`
 
 #### Scope zu User zuordnen
 
 `POST /api/idm/assignments/user-scope`
 
-Request:
-
-* `userAccountId`
-* `applicationScopeId`
-
 #### Scope von User entfernen
 
 `DELETE /api/idm/assignments/user-scope`
 
-Request:
-
-* `userAccountId`
-* `applicationScopeId`
-
 ---
 
-### 11.4 Bestehende Endpunkte für Rollen des Users
+### 10.4 Endpunkte für Rollen des Users
 
 #### Rollen eines Users innerhalb eines Scopes lesen
 
@@ -605,10 +532,6 @@ Pflichtparameter:
 * `applicationKey`
 * `stageKey`
 
-Antwort:
-
-* Liste von `RoleDTO`
-
 #### Rollen eines Users innerhalb eines Scopes paginiert lesen
 
 `GET /api/idm/assignments/user-role/users/{userAccountId}/roles/list`
@@ -618,90 +541,43 @@ Pflichtparameter:
 * `applicationKey`
 * `stageKey`
 
-Weitere Parameter:
-
-* `page`
-* `size`
-* `sortBy`
-* `sortDir`
-
-Antwort:
-
-* `PagedResponseDTO<RoleDTO>`
-
 #### Rolle zu User zuordnen
 
 `POST /api/idm/assignments/user-role`
-
-Request:
-
-* `userAccountId`
-* `roleId`
 
 #### Rolle von User entfernen
 
 `DELETE /api/idm/assignments/user-role`
 
-Request:
-
-* `userAccountId`
-* `roleId`
-
 ---
 
-### 11.5 Auth-/Session-Endpunkte mit UI-Relevanz
+## 11. API-Nutzung pro Ansicht
 
-Vorhanden sind Auth-Endpunkte für Login- und Refresh-Lifecycle:
-
-* `POST /auth/login`
-* `POST /auth/refresh`
-* `POST /auth/logout`
-* `POST /auth/logout-all`
-* `GET /auth/me`
-
-Diese Endpunkte sind jedoch **keine Admin-Read-API für User-Sessions**.
-
-Damit gilt:
-
-* Für die Login-Maske und Session-Steuerung des aktuellen Clients sind sie relevant.
-* Für eine Admin-User-Detailseite liefern sie **nicht** die benötigte Sessionübersicht eines beliebigen Users.
-
----
-
-### 11.6 Empfohlene API-Nutzung pro Ansicht
-
-## A. Finale Listenansicht
+## A. Listenansicht
 
 ### Primäre Datenquelle
 
 `GET /api/idm/users/list`
 
-### Bereits fachlich gut abdeckbar
+### Fachlich direkt nutzbar
 
 * ID
 * Benutzername
 * Anzeigename
 * E-Mail
 * Status
-* Paging
-* Sortierung innerhalb der heute unterstützten Felder
-* Filter auf Username, DisplayName, E-Mail, Status
-
-### Mit aktueller API nicht ausreichend abdeckbar
-
-* letzter Login
-* Login-Zähler / erfolgreiche Logins gesamt
 * Fehlversuche
 * lockedUntil
+* letzter Login
+* Login-Zähler
+* Auditfelder aus dem User-Kontext
+
+### Noch als technische Schulden / Folgepunkte zu betrachten
+
+* serverseitige Listenfähigkeit aller neuen Spalten
 * Scopes kompakt in der Liste
-* Rollenanzahl / Rollenindikator
-* Zuletzt geändert am
-
-### Fazit Listenansicht
-
-Für eine **MVP-Listenansicht** reicht die aktuelle API.
-
-Für die **fachlich gewünschte finale Listenansicht** reicht sie **nicht vollständig**. Dafür ist ein erweitertes Listen-DTO oder ein dedizierter Query-Endpunkt erforderlich.
+* Rollenindikatoren in der Liste
+* vollständige DTO-Konsistenz über alle User-bezogenen Read-Pfade
 
 ---
 
@@ -723,180 +599,74 @@ Für jeden Scope:
 
 `GET /api/idm/assignments/user-role/users/{userAccountId}/roles?applicationKey=...&stageKey=...`
 
-### Damit bereits darstellbar
+### Damit darstellbar
 
 * ID
 * Benutzername
 * Anzeigename
 * E-Mail
 * Status
+* Fehlversuche
+* `lockedUntil`
+* Auditdaten
+* `lastLogin`
+* `loginCount`
 * Zugewiesene Scopes
 * Rollen pro Scope
 
-### Mit aktueller API nicht ausreichend abdeckbar
+### Aktuell bewusst nicht MVP-relevant
 
-* Fehlversuche (`failedLoginAttempts`)
-* `lockedUntil`
-* Auditdaten (`createdAt`, `createdBy`, `lastModifiedAt`, `lastModifiedBy`)
 * Tags
-* Key-Value-Metadaten
-* letzter Login
-* Sessionübersicht
+* KeyValuePairs
+* Sessionlisten / aktive Sessions / Revocation-Übersichten
 * echte Audit-Timeline
-
-### Fazit Detailseite
-
-Die Detailseite ist mit **mehreren bestehenden Requests** bereits in einer fachlich sinnvollen Grundform umsetzbar.
-
-Das aktuelle Backend liefert aber nur den **Kernaccount plus Zuordnungen**. Für Sicherheits-, Audit- und Metadatenblöcke fehlen heute passende Read-Verträge.
 
 ---
 
 ## C. Formularansicht
 
-### 1. Initiales Laden
-
-Für die Edit-Seite sollte der Client laden:
+### Initiales Laden
 
 * `GET /api/idm/users/{id}`
 * `GET /api/idm/assignments/user-scope/users/{userAccountId}/scopes`
 * je Scope: `GET /api/idm/assignments/user-role/users/{userAccountId}/roles?...`
 
-### 2. Speichern der Stammdaten
+### Speichern der Stammdaten
 
-Hier besteht aktuell eine zentrale Lücke:
+* `PUT /api/idm/users/{id}`
 
-Es gibt derzeit **keinen allgemeinen Update-Endpunkt** für User-Stammdaten wie:
+### Statuspflege
 
-* `displayName`
-* `email`
-* allgemeine Statuspflege in einer einheitlichen Request-Struktur
-
-Vorhanden sind nur:
-
-* Aktivieren
-* Deaktivieren
-* Passwort ändern
-
-### 3. Scope-Verwaltung
-
-Vorhanden und sauber trennbar:
-
-* `POST /api/idm/assignments/user-scope`
-* `DELETE /api/idm/assignments/user-scope`
-
-### 4. Rollen-Verwaltung
-
-Vorhanden und sauber trennbar:
-
-* `POST /api/idm/assignments/user-role`
-* `DELETE /api/idm/assignments/user-role`
-
-### 5. Passwort-Verwaltung
-
-Vorhanden:
-
-* `PUT /api/idm/users/{id}/password`
-
-### Fazit Formularansicht
-
-Die Formularansicht kann konzeptionell sauber in **mehrere Teiloperationen** zerlegt werden.
-
-Was aktuell fehlt, ist jedoch der **allgemeine Update-Use-Case für User-Stammdaten**.
-
----
-
-### 11.7 Bewertung der Backend-Abdeckung je UI-Bereich
-
-#### Bereits ausreichend vorhanden
-
-* User anlegen
-* User laden (Basisdaten)
-* User-Liste (Basisdaten)
-* User aktivieren / deaktivieren
-* Passwort ändern
-* Scopes eines Users lesen
-* Scopes zuordnen / entfernen
-* Rollen eines Users je Scope lesen
-* Rollen zuordnen / entfernen
-
-#### Fachlich sinnvoll, aber aktuell nicht ausreichend geliefert
-
-* letzter Login
-* Login-Zähler
-* Fehlversuche
-* lockedUntil in der Read-API
-* Auditfelder in der User-Read-API
-* Tags / Key-Value-Metadaten in der User-Read-API
-* Sessionübersicht für Admin-Sicht
-* konsolidierte Detailprojektion für eine komplette User-Detailseite
-* erweiterte Listenprojektion für finale DataGrid-Spalten
-* allgemeiner Update-Endpoint für User-Stammdaten
-
----
-
-### 11.8 Konzeptionelle Empfehlung für die Client-Backend-Kopplung
-
-## Für die aktuelle Umsetzung ohne Backend-Änderung
-
-#### Listenansicht
-
-Kopplung an:
-
-* `GET /api/idm/users/list`
-
-Anzeigbar ohne fachliche Fakes:
-
-* ID
-* Benutzername
-* Anzeigename
-* E-Mail
-* Status
-
-#### Detailseite
-
-Kopplung an:
-
-* `GET /api/idm/users/{id}`
-* `GET /api/idm/assignments/user-scope/users/{userAccountId}/scopes`
-* pro Scope: `GET /api/idm/assignments/user-role/users/{userAccountId}/roles?...`
-
-#### Formularansicht
-
-Kopplung an:
-
-* `POST /api/idm/users`
 * `PUT /api/idm/users/{id}/activate`
 * `PUT /api/idm/users/{id}/deactivate`
+
+### Passwort-Verwaltung
+
 * `PUT /api/idm/users/{id}/password`
+
+### Scope-Verwaltung
+
 * `POST /api/idm/assignments/user-scope`
 * `DELETE /api/idm/assignments/user-scope`
+
+### Rollen-Verwaltung
+
 * `POST /api/idm/assignments/user-role`
 * `DELETE /api/idm/assignments/user-role`
 
-## Für die fachlich vollständige Ziel-UI
-
-Das Backend sollte zusätzlich eigene, UI-taugliche Query-/Command-Verträge erhalten:
-
-* erweitertes `UserListItemDTO`
-* erweitertes `UserDetailDTO`
-* `UpdateUserRequestDTO` plus allgemeiner Update-Endpunkt
-* optional Session-Read-API für Admin-Sicht
-* optional Audit-/History-API
-* optional Metadata-API für Tags / KeyValuePairs
-
 ---
 
-### 11.9 Klare Schlussfolgerung
+## 12. Klare Schlussfolgerung
 
-Die bestehende IDM-API erlaubt bereits eine **saubere Grundkopplung** für User-Liste, Detailseite und Formularlogik, wenn der Client mehrere spezialisierte Requests verwendet.
+Die IDM-API ist im aktuellen Sprint-9-Stand für die geplante **User-UI-Kopplung** fachlich deutlich weiter reif als zu Beginn der Analyse.
 
-Für die gewünschte **finale** UI reichen die vorhandenen Verträge jedoch noch nicht vollständig aus.
+Für GWC bedeutet das:
 
-Insbesondere fehlen aktuell:
+* Liste, Detail und Formular sind auf Basis realer IDM-Verträge fachlich sauber modellierbar
+* User wird korrekt als technischer UserAccount und nicht als Personenmodell behandelt
+* bestehende Endpunkte wurden bevorzugt erweitert statt unnötig ersetzt
+* verbleibende Punkte sind überwiegend **technische Schulden bzw. spätere optionale Erweiterungen**, nicht mehr grundlegende fachliche API-Blocker
 
-* ein allgemeiner User-Update-Endpunkt
-* Read-DTOs für Security- und Auditdaten
-* UI-taugliche Detail-/Listenprojektionen für letzte Logins, Fehlversuche, Lock-Informationen und Metadaten
+Die wichtigste Leitlinie bleibt:
 
-Die konzeptionelle Kopplung ist damit bereits definierbar, aber die finale Zieloberfläche erfordert zusätzliche Backend-Verträge.
+> Die User-UI im GWC muss sich am **technischen IDM-Accountmodell** orientieren und nicht an einem personenorientierten Verwaltungsmodell.

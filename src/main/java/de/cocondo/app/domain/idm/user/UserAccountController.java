@@ -9,8 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
-
 /**
  * REST API for managing UserAccount aggregates.
  *
@@ -55,11 +53,6 @@ public class UserAccountController {
     @GetMapping("/{id}")
     public UserAccountDTO getById(@PathVariable("id") String id) {
         return userAccountDomainService.getUserById(id);
-    }
-
-    @GetMapping
-    public List<UserAccountDTO> list() {
-        return userAccountDomainService.listUsers();
     }
 
     @PutMapping("/{id}")

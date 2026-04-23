@@ -1,5 +1,6 @@
 package de.cocondo.app.domain.idm.assignment;
 
+import de.cocondo.app.domain.idm.user.UserAccountDtoAssembler;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -16,6 +17,7 @@ import static de.cocondo.app.config.IdmManagementAuthorities.IDM_SCOPE_READ;
 public class ListUsersOfApplicationScopeHandler {
 
     private final UserApplicationScopeAssignmentEntityService userApplicationScopeAssignmentEntityService;
+    private final UserAccountDtoAssembler userAccountDtoAssembler;
 
     @PreAuthorize("hasAuthority('" + IDM_SCOPE_READ + "')")
     public List<UserAccountDTO> handle(String applicationScopeId) {
@@ -29,15 +31,7 @@ public class ListUsersOfApplicationScopeHandler {
                 .stream()
                 .map(UserApplicationScopeAssignment::getUserAccount)
                 .filter(user -> user != null)
-                .map(user -> {
-                    UserAccountDTO dto = new UserAccountDTO();
-                    dto.setId(user.getId());
-                    dto.setUsername(user.getUsername());
-                    dto.setDisplayName(user.getDisplayName());
-                    dto.setEmail(user.getEmail());
-                    dto.setState(user.getState());
-                    return dto;
-                })
+                .map(userAccountDtoAssembler::toDto)
                 .toList();
     }
 }

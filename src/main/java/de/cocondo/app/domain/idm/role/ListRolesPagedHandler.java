@@ -2,6 +2,8 @@ package de.cocondo.app.domain.idm.role;
 
 import de.cocondo.app.domain.idm.role.dto.RoleDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
+import de.cocondo.app.system.list.PagedQuerySupport;
+import de.cocondo.app.system.list.PagedResponseFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +23,8 @@ import static de.cocondo.app.config.IdmManagementAuthorities.IDM_ROLE_READ;
 public class ListRolesPagedHandler {
 
     private final RoleEntityService roleEntityService;
+    private final PagedQuerySupport pagedQuerySupport;
+    private final PagedResponseFactory pagedResponseFactory;
 
     @PreAuthorize("hasAuthority('" + IDM_ROLE_READ + "')")
     public PagedResponseDTO<RoleDTO> handle(
@@ -33,10 +37,10 @@ public class ListRolesPagedHandler {
             Boolean systemProtected
     ) {
 
-        validatePaging(page, size);
+        pagedQuerySupport.validatePaging(page, size);
 
         String resolvedSortBy = resolveSortBy(sortBy);
-        Sort.Direction direction = resolveSortDirection(sortDir);
+        Sort.Direction direction = pagedQuerySupport.resolveSortDirection(sortDir);
         Specification<Role> specification = buildSpecification(applicationScopeId, name, systemProtected);
 
         Page<Role> result = roleEntityService.loadPage(
@@ -44,26 +48,7 @@ public class ListRolesPagedHandler {
                 PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
         );
 
-        PagedResponseDTO<RoleDTO> response = new PagedResponseDTO<>();
-        response.setItems(result.getContent().stream().map(this::toDto).toList());
-        response.setPage(result.getNumber());
-        response.setSize(result.getSize());
-        response.setTotalElements(result.getTotalElements());
-        response.setTotalPages(result.getTotalPages());
-
-        return response;
-    }
-
-    private void validatePaging(int page, int size) {
-        if (page < 0) {
-            throw new IllegalArgumentException("page must be >= 0");
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("size must be > 0");
-        }
-        if (size > 200) {
-            throw new IllegalArgumentException("size must be <= 200");
-        }
+        return pagedResponseFactory.fromPage(result, this::toDto);
     }
 
     private String resolveSortBy(String sortBy) {
@@ -75,21 +60,6 @@ public class ListRolesPagedHandler {
             case "id", "name", "description", "systemProtected" -> sortBy;
             default -> throw new IllegalArgumentException("Unsupported sortBy for roles: " + sortBy);
         };
-    }
-
-    private Sort.Direction resolveSortDirection(String sortDir) {
-        if (sortDir == null || sortDir.isBlank()) {
-            return Sort.Direction.ASC;
-        }
-
-        if ("asc".equalsIgnoreCase(sortDir)) {
-            return Sort.Direction.ASC;
-        }
-        if ("desc".equalsIgnoreCase(sortDir)) {
-            return Sort.Direction.DESC;
-        }
-
-        throw new IllegalArgumentException("sortDir must be 'asc' or 'desc'");
     }
 
     private Specification<Role> buildSpecification(

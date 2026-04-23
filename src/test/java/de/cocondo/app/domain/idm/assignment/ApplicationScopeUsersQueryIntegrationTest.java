@@ -68,7 +68,9 @@ class ApplicationScopeUsersQueryIntegrationTest extends AbstractIdmIntegrationTe
                 .andExpect(jsonPath("$[*].id", hasItem(userId)))
                 .andExpect(jsonPath("$[*].username", hasItem("u_scope_users")))
                 .andExpect(jsonPath("$[*].displayName", hasItem("User Scope Users")))
-                .andExpect(jsonPath("$[*].email", hasItem("u_scope_users@test.local")));
+                .andExpect(jsonPath("$[*].email", hasItem("u_scope_users@test.local")))
+                .andExpect(jsonPath("$[*].loginCount", hasItem(0)))
+                .andExpect(jsonPath("$[*].lastLogin").isArray());
     }
 
     @Test
@@ -120,6 +122,8 @@ class ApplicationScopeUsersQueryIntegrationTest extends AbstractIdmIntegrationTe
                 .andExpect(jsonPath("$.items[*].username", hasItem("u_scope_users_paged")))
                 .andExpect(jsonPath("$.items[*].displayName", hasItem("User Scope Users Paged")))
                 .andExpect(jsonPath("$.items[*].email", hasItem("u_scope_users_paged@test.local")))
+                .andExpect(jsonPath("$.items[*].loginCount", hasItem(0)))
+                .andExpect(jsonPath("$.items[*].lastLogin").isArray())
                 .andExpect(jsonPath("$.page", is(0)))
                 .andExpect(jsonPath("$.size", is(20)))
                 .andExpect(jsonPath("$.totalElements", greaterThanOrEqualTo(1)))

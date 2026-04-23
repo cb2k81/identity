@@ -4,8 +4,11 @@ import de.cocondo.app.domain.idm.role.Role;
 import de.cocondo.app.domain.idm.role.RoleEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
+import de.cocondo.app.domain.idm.user.UserAccountDtoAssembler;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import de.cocondo.app.system.dto.PagedResponseDTO;
+import de.cocondo.app.system.list.PagedQuerySupport;
+import de.cocondo.app.system.list.PagedResponseFactory;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -15,8 +18,6 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
-
-import java.util.Locale;
 
 import static de.cocondo.app.config.IdmManagementAuthorities.IDM_ROLE_READ;
 
@@ -28,6 +29,9 @@ public class ListUsersOfRoleInScopePagedHandler {
     private final ApplicationScopeEntityService applicationScopeEntityService;
     private final RoleEntityService roleEntityService;
     private final UserRoleAssignmentEntityService userRoleAssignmentEntityService;
+    private final UserAccountDtoAssembler userAccountDtoAssembler;
+    private final PagedQuerySupport pagedQuerySupport;
+    private final PagedResponseFactory pagedResponseFactory;
 
     @PreAuthorize("hasAuthority('" + IDM_ROLE_READ + "')")
     public PagedResponseDTO<UserAccountDTO> handle(
@@ -49,7 +53,7 @@ public class ListUsersOfRoleInScopePagedHandler {
             throw new IllegalArgumentException("stageKey must not be blank");
         }
 
-        validatePaging(page, size);
+        pagedQuerySupport.validatePaging(page, size);
 
         ApplicationScope scope = applicationScopeEntityService
                 .loadByApplicationKeyAndStageKey(applicationKey, stageKey)
@@ -63,7 +67,7 @@ public class ListUsersOfRoleInScopePagedHandler {
         }
 
         String resolvedSortBy = resolveSortBy(sortBy);
-        Sort.Direction direction = resolveSortDirection(sortDir);
+        Sort.Direction direction = pagedQuerySupport.resolveSortDirection(sortDir);
 
         Page<UserRoleAssignment> result = userRoleAssignmentEntityService.loadPageByRoleIdAndScope(
                 roleId,
@@ -72,38 +76,10 @@ public class ListUsersOfRoleInScopePagedHandler {
                 PageRequest.of(page, size, Sort.by(direction, resolvedSortBy))
         );
 
-        PagedResponseDTO<UserAccountDTO> response = new PagedResponseDTO<>();
-        response.setItems(result.getContent().stream()
-                .map(UserRoleAssignment::getUserAccount)
-                .filter(user -> user != null)
-                .map(user -> {
-                    UserAccountDTO dto = new UserAccountDTO();
-                    dto.setId(user.getId());
-                    dto.setUsername(user.getUsername());
-                    dto.setDisplayName(user.getDisplayName());
-                    dto.setEmail(user.getEmail());
-                    dto.setState(user.getState());
-                    return dto;
-                })
-                .toList());
-        response.setPage(result.getNumber());
-        response.setSize(result.getSize());
-        response.setTotalElements(result.getTotalElements());
-        response.setTotalPages(result.getTotalPages());
-
-        return response;
-    }
-
-    private void validatePaging(int page, int size) {
-        if (page < 0) {
-            throw new IllegalArgumentException("page must be >= 0");
-        }
-        if (size <= 0) {
-            throw new IllegalArgumentException("size must be > 0");
-        }
-        if (size > 200) {
-            throw new IllegalArgumentException("size must be <= 200");
-        }
+        return pagedResponseFactory.fromPage(
+                result,
+                assignment -> userAccountDtoAssembler.toDto(assignment.getUserAccount())
+        );
     }
 
     private String resolveSortBy(String sortBy) {
@@ -118,18 +94,6 @@ public class ListUsersOfRoleInScopePagedHandler {
             case "email" -> "userAccount.email";
             case "state" -> "userAccount.state";
             default -> throw new IllegalArgumentException("Unsupported sortBy for role users in scope: " + sortBy);
-        };
-    }
-
-    private Sort.Direction resolveSortDirection(String sortDir) {
-        if (sortDir == null || sortDir.isBlank()) {
-            return Sort.Direction.ASC;
-        }
-
-        return switch (sortDir.toLowerCase(Locale.ROOT)) {
-            case "asc" -> Sort.Direction.ASC;
-            case "desc" -> Sort.Direction.DESC;
-            default -> throw new IllegalArgumentException("Unsupported sortDir: " + sortDir);
         };
     }
 }

@@ -93,7 +93,7 @@ class RoleUsersInScopeQueryIntegrationTest extends AbstractIdmIntegrationTest {
                         .content(objectMapper.writeValueAsString(roleAssignReq)))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/idm/assignments/user-role/roles/" + roleId + "/users")
+        mockMvc.perform(get("/api/idm/assignments/user-role/roles/{roleId}/users", roleId)
                         .header("Authorization", "Bearer " + token)
                         .param("applicationKey", applicationKey)
                         .param("stageKey", stageKey))
@@ -103,7 +103,9 @@ class RoleUsersInScopeQueryIntegrationTest extends AbstractIdmIntegrationTest {
                 .andExpect(jsonPath("$[0].username", is("u_role_users")))
                 .andExpect(jsonPath("$[0].displayName", is("User Role Users")))
                 .andExpect(jsonPath("$[0].email", is("u_role_users@test.local")))
-                .andExpect(jsonPath("$[0].state", is(UserAccountState.ACTIVE.name())));
+                .andExpect(jsonPath("$[0].state", is(UserAccountState.ACTIVE.name())))
+                .andExpect(jsonPath("$[0].loginCount", is(0)))
+                .andExpect(jsonPath("$[0].lastLogin").doesNotExist());
     }
 
     @Test
@@ -188,6 +190,8 @@ class RoleUsersInScopeQueryIntegrationTest extends AbstractIdmIntegrationTest {
                 .andExpect(jsonPath("$.items[0].displayName", is("User Role Users Paged")))
                 .andExpect(jsonPath("$.items[0].email", is("u_role_users_paged@test.local")))
                 .andExpect(jsonPath("$.items[0].state", is(UserAccountState.ACTIVE.name())))
+                .andExpect(jsonPath("$.items[0].loginCount", is(0)))
+                .andExpect(jsonPath("$.items[0].lastLogin").doesNotExist())
                 .andExpect(jsonPath("$.page", is(0)))
                 .andExpect(jsonPath("$.size", is(20)))
                 .andExpect(jsonPath("$.totalElements", is(1)))

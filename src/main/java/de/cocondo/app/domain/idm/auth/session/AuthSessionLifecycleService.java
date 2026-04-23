@@ -13,6 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.HexFormat;
 import java.util.List;
 import java.util.Objects;
@@ -84,6 +85,7 @@ public class AuthSessionLifecycleService {
         authSession.setRefreshTokenHash(refreshTokenHash);
         authSession.setExpiresAt(expiresAt);
         authSession.setStatus(AuthSessionStatus.ACTIVE);
+        authSession.setCreatedAt(LocalDateTime.now());
 
         AuthSession saved = authSessionEntityService.save(authSession);
 
@@ -139,10 +141,9 @@ public class AuthSessionLifecycleService {
         AuthSession saved = authSessionEntityService.save(authSession);
 
         log.info(
-                "AuthSession revoked: sessionId={}, userId={}, scopeId={}, reason={}",
+                "AuthSession revoked: sessionId={}, userId={}, reason={}",
                 saved.getId(),
                 saved.getUserAccount().getId(),
-                saved.getApplicationScope().getId(),
                 saved.getRevokedReason()
         );
 
@@ -150,7 +151,7 @@ public class AuthSessionLifecycleService {
     }
 
     /**
-     * Revokes all currently active auth sessions of the given user.
+     * Revokes all currently active sessions of a user.
      *
      * @return number of revoked sessions
      */
@@ -161,87 +162,65 @@ public class AuthSessionLifecycleService {
             throw new IllegalArgumentException("userAccountId must not be blank");
         }
 
-        List<AuthSession> activeSessions =
-                authSessionEntityService.loadAllActiveByUserAccountId(userAccountId);
-
+        List<AuthSession> activeSessions = authSessionEntityService.loadAllActiveByUserAccountId(userAccountId);
         Instant now = Instant.now();
         String normalizedReason = normalizeReason(reason);
 
         int revokedCount = 0;
 
         for (AuthSession authSession : activeSessions) {
-
-            if (authSession.isExpired(now)) {
-                authSession.markExpired();
-                authSessionEntityService.save(authSession);
-                continue;
-            }
-
             authSession.revoke(normalizedReason, now);
             authSessionEntityService.save(authSession);
             revokedCount++;
         }
 
-        log.info("All active AuthSessions revoked for userId={}: revokedCount={}", userAccountId, revokedCount);
+        log.info(
+                "All active AuthSessions revoked: userId={}, revokedCount={}, reason={}",
+                userAccountId,
+                revokedCount,
+                normalizedReason
+        );
 
         return revokedCount;
     }
 
     private void ensureUsable(AuthSession authSession) {
 
-        Instant now = Instant.now();
-
-        if (authSession.getStatus() == AuthSessionStatus.REVOKED) {
-            throw new IllegalStateException("AuthSession has been revoked");
+        if (authSession.getStatus() != AuthSessionStatus.ACTIVE) {
+            throw new IllegalStateException("AuthSession is not active");
         }
 
-        if (authSession.getStatus() == AuthSessionStatus.EXPIRED) {
-            throw new IllegalStateException("AuthSession has expired");
-        }
-
-        if (authSession.isExpired(now)) {
+        if (authSession.isExpired(Instant.now())) {
             authSessionEntityService.markExpiredInNewTransaction(authSession.getId());
             throw new IllegalStateException("AuthSession has expired");
-        }
-
-        UserAccount userAccount = authSession.getUserAccount();
-        if (userAccount == null) {
-            throw new IllegalStateException("AuthSession has no UserAccount");
-        }
-        if (!userAccount.isActive()) {
-            throw new IllegalStateException("UserAccount is not active");
-        }
-
-        if (authSession.getApplicationScope() == null) {
-            throw new IllegalStateException("AuthSession has no ApplicationScope");
         }
     }
 
     private String normalizeReason(String reason) {
         if (reason == null || reason.isBlank()) {
-            return "revoked";
+            return "unspecified";
         }
         return reason.trim();
     }
 
     private String generateRefreshTokenValue() {
 
-        byte[] bytes = new byte[32];
-        SECURE_RANDOM.nextBytes(bytes);
+        byte[] randomBytes = new byte[32];
+        SECURE_RANDOM.nextBytes(randomBytes);
 
         return Base64.getUrlEncoder()
                 .withoutPadding()
-                .encodeToString(bytes);
+                .encodeToString(randomBytes);
     }
 
     private String hashRefreshToken(String refreshToken) {
 
         try {
-            MessageDigest messageDigest = MessageDigest.getInstance("SHA-256");
-            byte[] digest = messageDigest.digest(refreshToken.getBytes(StandardCharsets.UTF_8));
-            return HEX_FORMAT.formatHex(digest);
-        } catch (NoSuchAlgorithmException ex) {
-            throw new IllegalStateException("SHA-256 not available", ex);
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(refreshToken.getBytes(StandardCharsets.UTF_8));
+            return HEX_FORMAT.formatHex(hash);
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 algorithm not available", e);
         }
     }
 }

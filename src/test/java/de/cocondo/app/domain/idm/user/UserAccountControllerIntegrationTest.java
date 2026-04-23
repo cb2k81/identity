@@ -184,15 +184,24 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
     }
 
     @Test
-    void list_users() throws Exception {
+    void list_users_paged() throws Exception {
 
         String token = loginAdminAndGetToken();
 
         mockMvc.perform(
-                        get("/api/idm/users")
+                        get("/api/idm/users/list")
                                 .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "20")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
                 )
-                .andExpect(status().isOk());
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items").isArray())
+                .andExpect(jsonPath("$.page").value(0))
+                .andExpect(jsonPath("$.size").value(20))
+                .andExpect(jsonPath("$.totalElements").exists())
+                .andExpect(jsonPath("$.totalPages").exists());
     }
 
     @Test

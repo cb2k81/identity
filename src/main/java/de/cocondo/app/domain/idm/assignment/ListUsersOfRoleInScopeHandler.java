@@ -1,10 +1,10 @@
-// Datei: src/main/java/de/cocondo/app/domain/idm/assignment/ListUsersOfRoleInScopeHandler.java
 package de.cocondo.app.domain.idm.assignment;
 
 import de.cocondo.app.domain.idm.role.Role;
 import de.cocondo.app.domain.idm.role.RoleEntityService;
 import de.cocondo.app.domain.idm.scope.ApplicationScope;
 import de.cocondo.app.domain.idm.scope.ApplicationScopeEntityService;
+import de.cocondo.app.domain.idm.user.UserAccountDtoAssembler;
 import de.cocondo.app.domain.idm.user.dto.UserAccountDTO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,6 +25,7 @@ public class ListUsersOfRoleInScopeHandler {
     private final ApplicationScopeEntityService applicationScopeEntityService;
     private final RoleEntityService roleEntityService;
     private final UserRoleAssignmentEntityService userRoleAssignmentEntityService;
+    private final UserAccountDtoAssembler userAccountDtoAssembler;
 
     @PreAuthorize("hasAuthority('" + IDM_ROLE_READ + "')")
     public List<UserAccountDTO> handle(String roleId, String applicationKey, String stageKey) {
@@ -55,15 +56,7 @@ public class ListUsersOfRoleInScopeHandler {
                 .stream()
                 .map(UserRoleAssignment::getUserAccount)
                 .filter(user -> user != null)
-                .map(user -> {
-                    UserAccountDTO dto = new UserAccountDTO();
-                    dto.setId(user.getId());
-                    dto.setUsername(user.getUsername());
-                    dto.setDisplayName(user.getDisplayName());
-                    dto.setEmail(user.getEmail());
-                    dto.setState(user.getState());
-                    return dto;
-                })
+                .map(userAccountDtoAssembler::toDto)
                 .toList();
     }
 }
