@@ -3,7 +3,6 @@ package de.cocondo.app.system.entity;
 import de.cocondo.app.system.entity.metadata.KeyValuePair;
 import jakarta.persistence.*;
 import org.hibernate.Hibernate;
-import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 
 import java.time.LocalDateTime;
 import java.util.HashSet;

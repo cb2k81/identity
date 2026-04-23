@@ -5,13 +5,18 @@ import de.cocondo.app.domain.idm.AbstractIdmIntegrationTest;
 import de.cocondo.app.domain.idm.user.dto.ChangePasswordRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.CreateUserRequestDTO;
 import de.cocondo.app.domain.idm.user.dto.UpdateUserRequestDTO;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.greaterThanOrEqualTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.is;
 import static org.hamcrest.Matchers.notNullValue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -21,6 +26,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
+
+    @Autowired
+    private UserAccountRepository userAccountRepository;
 
     @Test
     void create_user_and_read_user() throws Exception {
@@ -345,5 +353,363 @@ class UserAccountControllerIntegrationTest extends AbstractIdmIntegrationTest {
                                 .header("Authorization", "Bearer " + token)
                 )
                 .andExpect(status().isNoContent());
+    }
+
+    @Test
+    void list_users_exposes_failed_login_attempts_locked_until_and_last_modified_at() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String username = "user_list_fields_" + UUID.randomUUID();
+
+        String userId = createUserViaApi(token, username, "User List Fields", "list-fields@example.org");
+
+        UserAccount user = userAccountRepository.findById(userId).orElseThrow();
+        Instant lockedUntil = Instant.parse("2030-01-01T10:15:30Z");
+        user.setFailedLoginAttempts(3);
+        user.setLockedUntil(lockedUntil);
+        UserAccount saved = userAccountRepository.save(user);
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("username", username)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value(userId))
+                .andExpect(jsonPath("$.items[0].username").value(username))
+                .andExpect(jsonPath("$.items[0].failedLoginAttempts").value(3))
+                .andExpect(jsonPath("$.items[0].lockedUntil").value(lockedUntil.toString()))
+                .andExpect(jsonPath("$.items[0].lastModifiedAt").isNotEmpty());
+
+        String listResponse = mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("username", username)
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value(userId))
+                .andExpect(jsonPath("$.items[0].username").value(username))
+                .andExpect(jsonPath("$.items[0].failedLoginAttempts").value(3))
+                .andExpect(jsonPath("$.items[0].lockedUntil").value(lockedUntil.toString()))
+                .andExpect(jsonPath("$.items[0].lastModifiedAt").isNotEmpty())
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        LocalDateTime responseLastModifiedAt = LocalDateTime.parse(
+                objectMapper.readTree(listResponse).get("items").get(0).get("lastModifiedAt").asText()
+        );
+
+        org.junit.jupiter.api.Assertions.assertNotNull(saved.getLastModifiedAt());
+        org.junit.jupiter.api.Assertions.assertEquals(
+                saved.getLastModifiedAt().withNano(0),
+                responseLastModifiedAt.withNano(0)
+        );
+    }
+
+    @Test
+    void list_users_filters_by_failed_login_attempts() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_filter_failed_a_" + UUID.randomUUID();
+        String usernameB = "user_filter_failed_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Failed A", "failed-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Failed B", "failed-b@example.org");
+
+        UserAccount userA = userAccountRepository.findById(userIdA).orElseThrow();
+        userA.setFailedLoginAttempts(2);
+        userAccountRepository.save(userA);
+
+        UserAccount userB = userAccountRepository.findById(userIdB).orElseThrow();
+        userB.setFailedLoginAttempts(7);
+        userAccountRepository.save(userB);
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("failedLoginAttempts", "7")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value(userIdB))
+                .andExpect(jsonPath("$.items[0].failedLoginAttempts").value(7));
+    }
+
+    @Test
+    void list_users_filters_by_locked_until() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_filter_locked_a_" + UUID.randomUUID();
+        String usernameB = "user_filter_locked_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Locked A", "locked-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Locked B", "locked-b@example.org");
+
+        Instant lockedUntilA = Instant.parse("2030-02-01T08:00:00Z");
+        Instant lockedUntilB = Instant.parse("2030-03-01T08:00:00Z");
+
+        UserAccount userA = userAccountRepository.findById(userIdA).orElseThrow();
+        userA.setLockedUntil(lockedUntilA);
+        userAccountRepository.save(userA);
+
+        UserAccount userB = userAccountRepository.findById(userIdB).orElseThrow();
+        userB.setLockedUntil(lockedUntilB);
+        userAccountRepository.save(userB);
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("lockedUntil", lockedUntilB.toString())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[*].id", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value(userIdB))
+                .andExpect(jsonPath("$.items[0].lockedUntil").value(lockedUntilB.toString()));
+    }
+
+    @Test
+    void list_users_filters_by_last_modified_at() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_filter_modified_a_" + UUID.randomUUID();
+        String usernameB = "user_filter_modified_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Modified A", "modified-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Modified B", "modified-b@example.org");
+
+        UpdateUserRequestDTO updateRequest = new UpdateUserRequestDTO();
+        updateRequest.setDisplayName("User Modified B Updated");
+        updateRequest.setEmail("modified-b-updated@example.org");
+
+        mockMvc.perform(
+                        put("/api/idm/users/{id}", userIdB)
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequest))
+                )
+                .andExpect(status().isOk());
+
+        UserAccount updatedUserB = userAccountRepository.findById(userIdB).orElseThrow();
+        LocalDateTime lastModifiedAtB = updatedUserB.getLastModifiedAt();
+
+        org.junit.jupiter.api.Assertions.assertNotNull(
+                lastModifiedAtB,
+                "lastModifiedAt must be populated after updating a user"
+        );
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("lastModifiedAt", lastModifiedAtB.toString())
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id=='" + userIdB + "')]").exists());
+    }
+
+    @Test
+    void list_users_sorts_by_failed_login_attempts_desc() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_sort_failed_a_" + UUID.randomUUID();
+        String usernameB = "user_sort_failed_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Sort Failed A", "sort-failed-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Sort Failed B", "sort-failed-b@example.org");
+
+        UserAccount userA = userAccountRepository.findById(userIdA).orElseThrow();
+        userA.setFailedLoginAttempts(1);
+        userAccountRepository.save(userA);
+
+        UserAccount userB = userAccountRepository.findById(userIdB).orElseThrow();
+        userB.setFailedLoginAttempts(9);
+        userAccountRepository.save(userB);
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "50")
+                                .param("sortBy", "failedLoginAttempts")
+                                .param("sortDir", "desc")
+                                .param("username", "user_sort_failed_")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(userIdB))
+                .andExpect(jsonPath("$.items[0].failedLoginAttempts").value(9));
+    }
+
+    @Test
+    void list_users_sorts_by_locked_until_desc() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_sort_locked_a_" + UUID.randomUUID();
+        String usernameB = "user_sort_locked_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Sort Locked A", "sort-locked-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Sort Locked B", "sort-locked-b@example.org");
+
+        Instant lockedUntilA = Instant.parse("2030-04-01T08:00:00Z");
+        Instant lockedUntilB = Instant.parse("2030-05-01T08:00:00Z");
+
+        UserAccount userA = userAccountRepository.findById(userIdA).orElseThrow();
+        userA.setLockedUntil(lockedUntilA);
+        userAccountRepository.save(userA);
+
+        UserAccount userB = userAccountRepository.findById(userIdB).orElseThrow();
+        userB.setLockedUntil(lockedUntilB);
+        userAccountRepository.save(userB);
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "50")
+                                .param("sortBy", "lockedUntil")
+                                .param("sortDir", "desc")
+                                .param("username", "user_sort_locked_")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(userIdB))
+                .andExpect(jsonPath("$.items[0].lockedUntil").value(lockedUntilB.toString()));
+    }
+
+    @Test
+    void list_users_sorts_by_last_modified_at_desc() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        String usernameA = "user_sort_modified_a_" + UUID.randomUUID();
+        String usernameB = "user_sort_modified_b_" + UUID.randomUUID();
+
+        String userIdA = createUserViaApi(token, usernameA, "User Sort Modified A", "sort-modified-a@example.org");
+        String userIdB = createUserViaApi(token, usernameB, "User Sort Modified B", "sort-modified-b@example.org");
+
+        UpdateUserRequestDTO updateRequestA = new UpdateUserRequestDTO();
+        updateRequestA.setDisplayName("User Sort Modified A Updated");
+        updateRequestA.setEmail("sort-modified-a-updated@example.org");
+
+        mockMvc.perform(
+                        put("/api/idm/users/{id}", userIdA)
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequestA))
+                )
+                .andExpect(status().isOk());
+
+        UpdateUserRequestDTO updateRequestB = new UpdateUserRequestDTO();
+        updateRequestB.setDisplayName("User Sort Modified B Updated");
+        updateRequestB.setEmail("sort-modified-b-updated@example.org");
+
+        mockMvc.perform(
+                        put("/api/idm/users/{id}", userIdB)
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(updateRequestB))
+                )
+                .andExpect(status().isOk());
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "50")
+                                .param("sortBy", "lastModifiedAt")
+                                .param("sortDir", "desc")
+                                .param("username", "user_sort_modified_")
+                )
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[0].id").value(userIdB));
+    }
+
+    @Test
+    void list_users_rejects_invalid_locked_until_filter() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("lockedUntil", "not-an-instant")
+                )
+                .andExpect(status().is4xxClientError());
+    }
+
+    @Test
+    void list_users_rejects_invalid_last_modified_at_filter() throws Exception {
+
+        String token = loginAdminAndGetToken();
+
+        mockMvc.perform(
+                        get("/api/idm/users/list")
+                                .header("Authorization", "Bearer " + token)
+                                .param("page", "0")
+                                .param("size", "10")
+                                .param("sortBy", "username")
+                                .param("sortDir", "asc")
+                                .param("lastModifiedAt", "not-a-local-date-time")
+                )
+                .andExpect(status().is4xxClientError());
+    }
+
+    private String createUserViaApi(
+            String token,
+            String username,
+            String displayName,
+            String email
+    ) throws Exception {
+
+        CreateUserRequestDTO request = new CreateUserRequestDTO();
+        request.setUsername(username);
+        request.setDisplayName(displayName);
+        request.setEmail(email);
+        request.setPassword("password");
+
+        String response = mockMvc.perform(
+                        post("/api/idm/users")
+                                .header("Authorization", "Bearer " + token)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(objectMapper.writeValueAsString(request))
+                )
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id").value(notNullValue()))
+                .andExpect(jsonPath("$.username").value(username))
+                .andReturn()
+                .getResponse()
+                .getContentAsString();
+
+        return objectMapper.readTree(response).get("id").asText();
     }
 }

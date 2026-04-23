@@ -36,7 +36,10 @@ public class UserAccountController {
             @RequestParam(name = "username", required = false) String username,
             @RequestParam(name = "displayName", required = false) String displayName,
             @RequestParam(name = "email", required = false) String email,
-            @RequestParam(name = "state", required = false) String state
+            @RequestParam(name = "state", required = false) String state,
+            @RequestParam(name = "failedLoginAttempts", required = false) Integer failedLoginAttempts,
+            @RequestParam(name = "lockedUntil", required = false) String lockedUntil,
+            @RequestParam(name = "lastModifiedAt", required = false) String lastModifiedAt
     ) {
         return userAccountDomainService.listUsersPaged(
                 page,
@@ -46,7 +49,10 @@ public class UserAccountController {
                 username,
                 displayName,
                 email,
-                state
+                state,
+                failedLoginAttempts,
+                lockedUntil,
+                lastModifiedAt
         );
     }
 

@@ -50,7 +50,10 @@ public class UserAccountDomainService {
             String username,
             String displayName,
             String email,
-            String state
+            String state,
+            Integer failedLoginAttempts,
+            String lockedUntil,
+            String lastModifiedAt
     ) {
         return listUsersPagedHandler.handle(
                 page,
@@ -60,7 +63,10 @@ public class UserAccountDomainService {
                 username,
                 displayName,
                 email,
-                state
+                state,
+                failedLoginAttempts,
+                lockedUntil,
+                lastModifiedAt
         );
     }
 

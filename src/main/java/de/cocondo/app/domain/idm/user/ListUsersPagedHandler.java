@@ -11,6 +11,9 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 import java.util.Locale;
 
 @Service
@@ -30,14 +33,25 @@ public class ListUsersPagedHandler {
             String username,
             String displayName,
             String email,
-            String state
+            String state,
+            Integer failedLoginAttempts,
+            String lockedUntil,
+            String lastModifiedAt
     ) {
 
         pagedQuerySupport.validatePaging(page, size);
 
         String resolvedSortBy = resolveSortBy(sortBy);
         Sort.Direction direction = pagedQuerySupport.resolveSortDirection(sortDir);
-        Specification<UserAccount> specification = buildSpecification(username, displayName, email, state);
+        Specification<UserAccount> specification = buildSpecification(
+                username,
+                displayName,
+                email,
+                state,
+                failedLoginAttempts,
+                lockedUntil,
+                lastModifiedAt
+        );
 
         Page<UserAccount> result = userAccountEntityService.loadPage(
                 specification,
@@ -53,7 +67,14 @@ public class ListUsersPagedHandler {
         }
 
         return switch (sortBy) {
-            case "id", "username", "displayName", "email", "state" -> sortBy;
+            case "id",
+                 "username",
+                 "displayName",
+                 "email",
+                 "state",
+                 "failedLoginAttempts",
+                 "lockedUntil",
+                 "lastModifiedAt" -> sortBy;
             default -> throw new IllegalArgumentException("Unsupported sortBy for users: " + sortBy);
         };
     }
@@ -62,7 +83,10 @@ public class ListUsersPagedHandler {
             String username,
             String displayName,
             String email,
-            String state
+            String state,
+            Integer failedLoginAttempts,
+            String lockedUntil,
+            String lastModifiedAt
     ) {
         Specification<UserAccount> specification = Specification.where(null);
 
@@ -103,6 +127,38 @@ public class ListUsersPagedHandler {
 
             specification = specification.and(
                     (root, query, cb) -> cb.equal(root.get("state"), parsedState)
+            );
+        }
+
+        if (failedLoginAttempts != null) {
+            specification = specification.and(
+                    (root, query, cb) -> cb.equal(root.get("failedLoginAttempts"), failedLoginAttempts)
+            );
+        }
+
+        if (lockedUntil != null && !lockedUntil.isBlank()) {
+            Instant parsedLockedUntil;
+            try {
+                parsedLockedUntil = Instant.parse(lockedUntil.trim());
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException("Unsupported lockedUntil for users: " + lockedUntil);
+            }
+
+            specification = specification.and(
+                    (root, query, cb) -> cb.equal(root.get("lockedUntil"), parsedLockedUntil)
+            );
+        }
+
+        if (lastModifiedAt != null && !lastModifiedAt.isBlank()) {
+            LocalDateTime parsedLastModifiedAt;
+            try {
+                parsedLastModifiedAt = LocalDateTime.parse(lastModifiedAt.trim());
+            } catch (DateTimeParseException ex) {
+                throw new IllegalArgumentException("Unsupported lastModifiedAt for users: " + lastModifiedAt);
+            }
+
+            specification = specification.and(
+                    (root, query, cb) -> cb.equal(root.get("lastModifiedAt"), parsedLastModifiedAt)
             );
         }
 
